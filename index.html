@@ -7,8 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&display=swap"
       rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
     />
     <script
       crossorigin
@@ -19,7 +23,31 @@
       src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
     ></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    ></script>
     <style>
+      :root {
+        --bg: #0a0f1a;
+        --bg-card: #0d1520;
+        --bg-card-2: #111927;
+        --border: #1e2a3e;
+        --border-2: #2a3a52;
+        --text: #e0e6f0;
+        --text-2: #b0bcd0;
+        --text-3: #8899b0;
+        --text-4: #5a6d85;
+        --text-5: #3a4a62;
+        --accent: #4fc3f7;
+        --accent-2: #81c784;
+        --accent-3: #ffb74d;
+        --accent-4: #ce93d8;
+      }
       * {
         box-sizing: border-box;
       }
@@ -30,10 +58,12 @@
       }
       body {
         font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-        background: #0a0f1a;
-        color: #e0e6f0;
+        background: var(--bg);
+        color: var(--text);
         min-height: 100vh;
       }
+
+      /* Calculator inputs */
       input[type="range"] {
         -webkit-appearance: none;
         appearance: none;
@@ -49,7 +79,7 @@
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: #4fc3f7;
+        background: var(--accent);
         cursor: pointer;
         box-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
       }
@@ -57,15 +87,15 @@
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: #4fc3f7;
+        background: var(--accent);
         cursor: pointer;
         border: none;
         box-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
       }
       input[type="number"] {
-        background: #111927;
-        border: 1px solid #2a3a52;
-        color: #e0e6f0;
+        background: var(--bg-card-2);
+        border: 1px solid var(--border-2);
+        color: var(--text);
         padding: 8px 12px;
         border-radius: 6px;
         font-family: "IBM Plex Mono", monospace;
@@ -75,17 +105,18 @@
       }
       input[type="number"]:focus {
         outline: none;
-        border-color: #4fc3f7;
+        border-color: var(--accent);
         box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
       }
       select {
         width: 100%;
-        background: #111927;
-        border: 1px solid #2a3a52;
+        background: var(--bg-card-2);
+        border: 1px solid var(--border-2);
         padding: 10px 12px;
         border-radius: 6px;
         font-family: "IBM Plex Sans", sans-serif;
         font-size: 13px;
+        color: var(--text);
         cursor: pointer;
         outline: none;
         appearance: none;
@@ -106,7 +137,7 @@
       .model-tab {
         flex: 1;
         padding: 10px 14px;
-        border: 1px solid #2a3a52;
+        border: 1px solid var(--border-2);
         background: transparent;
         color: #6b7b96;
         cursor: pointer;
@@ -118,15 +149,64 @@
       }
       .model-tab.active {
         background: linear-gradient(135deg, #1a3050, #1e3a5f);
-        color: #4fc3f7;
+        color: var(--accent);
         border-color: #2a4060;
       }
       .model-tab:hover:not(.active) {
-        color: #8899b0;
+        color: var(--text-3);
         border-color: #3a4a62;
       }
       button {
         font-family: "IBM Plex Sans", sans-serif;
+      }
+
+      /* Top nav tabs */
+      .top-nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(10, 15, 26, 0.92);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+      }
+      .top-nav-inner {
+        max-width: 820px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        gap: 8px;
+      }
+      .nav-tab {
+        padding: 16px 4px 14px;
+        background: transparent;
+        border: none;
+        color: var(--text-3);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        border-bottom: 2px solid transparent;
+        margin: 0 14px 0 0;
+        transition: all 0.15s;
+        font-family: "IBM Plex Sans", sans-serif;
+      }
+      .nav-tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      .nav-tab:hover:not(.active) {
+        color: var(--text-2);
+      }
+      .nav-tab .tab-num {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 10px;
+        color: var(--text-5);
+        margin-right: 6px;
+      }
+      .nav-tab.active .tab-num {
+        color: var(--accent);
       }
 
       /* Loader */
@@ -136,8 +216,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #0a0f1a;
-        z-index: 100;
+        background: var(--bg);
+        z-index: 200;
         transition: opacity 0.3s;
       }
       .loader-wrap.hidden {
@@ -147,14 +227,363 @@
       .loader {
         width: 36px;
         height: 36px;
-        border: 3px solid #1e2a3e;
-        border-top-color: #4fc3f7;
+        border: 3px solid var(--border);
+        border-top-color: var(--accent);
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
       }
       @keyframes spin {
         to {
           transform: rotate(360deg);
+        }
+      }
+
+      /* Documentation styles */
+      .doc-wrap {
+        font-family: "Crimson Pro", Georgia, serif;
+        font-size: 17px;
+        line-height: 1.7;
+      }
+      .doc-wrap .hero {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 28px;
+        margin-bottom: 40px;
+      }
+      .doc-wrap .eyebrow {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 11px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 12px;
+      }
+      .doc-wrap h1 {
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 32px;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+        line-height: 1.15;
+        margin: 0 0 12px 0;
+        color: var(--text);
+      }
+      .doc-wrap .hero p {
+        font-size: 17px;
+        color: var(--text-3);
+        margin: 0;
+        max-width: 620px;
+      }
+      .doc-wrap h2 {
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        color: var(--accent);
+        margin: 56px 0 16px 0;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      .doc-wrap h2 .num {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 13px;
+        color: var(--text-4);
+        font-weight: 400;
+        letter-spacing: 1px;
+      }
+      .doc-wrap h3 {
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+        margin: 32px 0 12px 0;
+        letter-spacing: -0.2px;
+      }
+      .doc-wrap h4 {
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-3);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 24px 0 10px 0;
+      }
+      .doc-wrap p {
+        margin: 0 0 16px 0;
+        color: var(--text-2);
+      }
+      .doc-wrap p.lead {
+        font-size: 18px;
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .doc-wrap a {
+        color: var(--accent);
+        text-decoration: none;
+        border-bottom: 1px solid transparent;
+        transition: border-color 0.15s;
+      }
+      .doc-wrap a:hover {
+        border-bottom-color: var(--accent);
+      }
+      .doc-wrap code {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.88em;
+        background: var(--bg-card);
+        color: var(--accent-2);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+      .doc-wrap .katex-display {
+        margin: 22px 0 !important;
+        padding: 18px 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 8px;
+        overflow-x: auto;
+      }
+      .doc-wrap .katex {
+        font-size: 1em !important;
+        color: var(--text);
+      }
+      .doc-wrap .def {
+        background: linear-gradient(135deg, #0d1b2a, #132238);
+        border: 1px solid #1e3a5f;
+        border-radius: 10px;
+        padding: 18px 22px;
+        margin: 22px 0;
+      }
+      .doc-wrap .def .label {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 10px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+      }
+      .doc-wrap .def h4 {
+        margin: 0 0 8px 0;
+        color: var(--text);
+        text-transform: none;
+        letter-spacing: -0.2px;
+        font-size: 16px;
+      }
+      .doc-wrap .def p {
+        margin: 0;
+        color: var(--text-2);
+      }
+      .doc-wrap .example {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 22px;
+        margin: 26px 0;
+      }
+      .doc-wrap .example .badge-ex {
+        display: inline-block;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 10px;
+        color: var(--accent-3);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        padding: 3px 8px;
+        background: rgba(255, 183, 77, 0.1);
+        border: 1px solid rgba(255, 183, 77, 0.3);
+        border-radius: 4px;
+        margin-bottom: 12px;
+      }
+      .doc-wrap .example h4 {
+        margin: 0 0 12px 0;
+        color: var(--text);
+        text-transform: none;
+        letter-spacing: -0.2px;
+        font-size: 17px;
+      }
+      .doc-wrap .example .step {
+        display: flex;
+        gap: 12px;
+        margin: 6px 0;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 12.5px;
+        color: var(--text-2);
+      }
+      .doc-wrap .example .step .marker {
+        color: var(--accent);
+        flex-shrink: 0;
+      }
+      .doc-wrap .example .result {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border-2);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 13.5px;
+        color: var(--accent-2);
+      }
+      .doc-wrap .note {
+        background: var(--bg-card);
+        border-left: 3px solid var(--accent-4);
+        padding: 12px 18px;
+        margin: 18px 0;
+        border-radius: 0 8px 8px 0;
+        font-size: 14.5px;
+        color: var(--text-2);
+      }
+      .doc-wrap .note strong {
+        color: var(--accent-4);
+        font-weight: 600;
+      }
+      .doc-wrap .table-wrap {
+        margin: 22px 0;
+        overflow-x: auto;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .doc-wrap table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 12.5px;
+      }
+      .doc-wrap table thead {
+        background: #0a1421;
+        border-bottom: 1px solid var(--border);
+      }
+      .doc-wrap table th {
+        padding: 10px 12px;
+        text-align: left;
+        color: var(--text-4);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .doc-wrap table td {
+        padding: 9px 12px;
+        color: var(--text-2);
+        border-bottom: 1px solid #141e2e;
+      }
+      .doc-wrap table tbody tr:last-child td {
+        border-bottom: none;
+      }
+      .doc-wrap table td.mono {
+        font-family: "IBM Plex Mono", monospace;
+        color: var(--text);
+      }
+      .doc-wrap table td.green {
+        color: var(--accent-2);
+      }
+      .doc-wrap table td.orange {
+        color: var(--accent-3);
+      }
+      .doc-wrap table td.purple {
+        color: var(--accent-4);
+      }
+      .doc-wrap table td.cyan {
+        color: var(--accent);
+      }
+      .doc-wrap .toc {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 18px 22px;
+        margin: 28px 0 40px;
+      }
+      .doc-wrap .toc h4 {
+        margin: 0 0 10px 0;
+        color: var(--text-3);
+      }
+      .doc-wrap .toc ol {
+        margin: 0;
+        padding-left: 22px;
+        color: var(--text-2);
+      }
+      .doc-wrap .toc ol li {
+        margin: 4px 0;
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 13.5px;
+      }
+      .doc-wrap .toc a {
+        color: var(--text-2);
+      }
+      .doc-wrap .toc a:hover {
+        color: var(--accent);
+      }
+      .doc-wrap .footer-doc {
+        margin-top: 64px;
+        padding-top: 28px;
+        border-top: 1px solid var(--border);
+        font-size: 12.5px;
+        color: var(--text-4);
+        text-align: center;
+      }
+      .doc-wrap .footer-doc strong {
+        color: var(--text-3);
+      }
+      .doc-wrap ul,
+      .doc-wrap ol {
+        color: var(--text-2);
+        padding-left: 24px;
+      }
+      .doc-wrap ul li,
+      .doc-wrap ol li {
+        margin: 5px 0;
+      }
+      .doc-wrap .cite {
+        font-style: italic;
+        color: var(--text-3);
+        font-size: 13.5px;
+      }
+      .doc-wrap .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin: 18px 0;
+      }
+      @media (max-width: 720px) {
+        .doc-wrap .grid-2 {
+          grid-template-columns: 1fr;
+        }
+        .doc-wrap h1 {
+          font-size: 26px;
+        }
+      }
+
+      @media print {
+        .top-nav {
+          display: none;
+        }
+        body {
+          background: white;
+          color: black;
+        }
+        .doc-wrap,
+        .doc-wrap p,
+        .doc-wrap li,
+        .doc-wrap h1,
+        .doc-wrap h2,
+        .doc-wrap h3,
+        .doc-wrap h4 {
+          color: black !important;
+        }
+        .doc-wrap .def,
+        .doc-wrap .example,
+        .doc-wrap .note,
+        .doc-wrap .table-wrap,
+        .doc-wrap .toc {
+          background: #f8f8f8;
+          border-color: #ccc;
+        }
+        .doc-wrap a {
+          color: black;
+        }
+        .doc-wrap .katex-display {
+          background: #f8f8f8;
+          border-color: #ccc;
         }
       }
     </style>
@@ -166,17 +595,14 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-      const { useState, useMemo } = React;
+      const { useState, useMemo, useEffect, useRef } = React;
 
       // ============================================================
       // MODELO BASEADO NOS INSUMOS FORNECIDOS
-      // ============================================================
-      // 1. CEMIG / Rusck (docx 2025/2026): f_∞ tabelado por classe
-      //    - 6ª RTP CEMIG (2023-2027), ANEEL 2024/2025
-      // 2. Sargent et al. (1994): Df(Ng) com componente parabólica
-      //    e hiperbólica - 4 parâmetros por classe
-      // 3. Nazarko et al. (1998): Df ~ Normal; Cf indep. de Ng
-      // 4. Heydt (2023): Df típico ∈ [1.0, 8.0]
+      // 1. CEMIG/Rusck (6ª RTP 2023-2027 + ANEEL 2024/2025)
+      // 2. Sargent et al. (1994) — IEEE Trans. Power Systems
+      // 3. Nazarko et al. (1998) — validação estatística
+      // 4. Heydt (2023) — Df ∈ [1.0, 8.0]
       // ============================================================
 
       const CLASSES_CEMIG = [
@@ -258,12 +684,10 @@
           CLASSES_CEMIG[CLASSES_CEMIG.length - 1]
         );
       }
-
       function fcRusck(n, fInf) {
         const nEf = Math.min(Math.max(n, 1), 40);
         return fInf + (1 - fInf) / Math.sqrt(nEf);
       }
-
       function dfSargent(n, params) {
         const nEf = Math.min(Math.max(n, 1), 40);
         const { A1, A2, A3, A4 } = params;
@@ -301,7 +725,10 @@
         }
       }
 
-      function App() {
+      // ============================================================
+      // COMPONENTE CALCULADORA
+      // ============================================================
+      function Calculadora() {
         const [D, setD] = useState(10.8);
         const [n, setN] = useState(55);
         const [modelo, setModelo] = useState("rusck");
@@ -317,7 +744,7 @@
 
         const handleCopyResult = () => {
           const text = `Demanda Diversificada Incremental
-Modelo: ${modelo === "rusck" ? "Rusck" : "Sargent / Heydt"}
+Modelo: ${modelo === "rusck" ? "Rusck (CEMIG)" : "Sargent / Heydt"}
 Classe: ${resultado.classe.nome}${classeIdx === -1 ? " (auto)" : " (manual)"}
 D (kVA): ${D}
 Clientes existentes: ${n}
@@ -332,13 +759,12 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
         };
 
         return (
-          <div style={{ padding: "24px 16px" }}>
+          <div style={{ padding: "32px 16px 64px" }}>
             <div style={{ maxWidth: 780, margin: "0 auto" }}>
-              {/* Header */}
               <div
                 style={{
                   marginBottom: 24,
-                  borderBottom: "1px solid #1e2a3e",
+                  borderBottom: "1px solid var(--border)",
                   paddingBottom: 20,
                   display: "flex",
                   justifyContent: "space-between",
@@ -361,7 +787,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       style={{
                         fontSize: 22,
                         fontWeight: 600,
-                        color: "#4fc3f7",
+                        color: "var(--accent)",
                         margin: 0,
                         letterSpacing: "-0.3px",
                       }}
@@ -376,19 +802,23 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                         border: "1px solid #2a4060",
                       }}
                     >
-                      Teste · v0.3
+                      Teste · v0.4
                     </span>
                   </div>
-                  <p style={{ fontSize: 13, color: "#6b7b96", margin: 0 }}>
-                    Rusck · Sargent (1994) · Heydt (2023)
+                  <p
+                    style={{ fontSize: 13, color: "var(--text-3)", margin: 0 }}
+                  >
+                    CEMIG 6ª RTP · Rusck · Sargent (1994) · Heydt (2023)
                   </p>
                 </div>
                 <button
                   onClick={handleCopyResult}
                   style={{
                     background: copied ? "#1a3050" : "transparent",
-                    border: "1px solid " + (copied ? "#4fc3f7" : "#2a3a52"),
-                    color: copied ? "#4fc3f7" : "#8899b0",
+                    border:
+                      "1px solid " +
+                      (copied ? "var(--accent)" : "var(--border-2)"),
+                    color: copied ? "var(--accent)" : "var(--text-3)",
                     padding: "8px 14px",
                     borderRadius: 6,
                     cursor: "pointer",
@@ -403,12 +833,11 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 </button>
               </div>
 
-              {/* Seletor de modelo */}
               <div style={{ marginBottom: 18 }}>
                 <div
                   style={{
                     fontSize: 11,
-                    color: "#8899b0",
+                    color: "var(--text-3)",
                     fontWeight: 500,
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
@@ -425,7 +854,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     onClick={() => setModelo("rusck")}
                     style={{ borderRadius: "6px 0 0 6px", borderRight: "none" }}
                   >
-                    Rusck
+                    Rusck (CEMIG)
                   </button>
                   <button
                     className={
@@ -439,12 +868,11 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 </div>
               </div>
 
-              {/* Seletor de classe */}
               <div style={{ marginBottom: 22 }}>
                 <div
                   style={{
                     fontSize: 11,
-                    color: "#8899b0",
+                    color: "var(--text-3)",
                     fontWeight: 500,
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
@@ -461,7 +889,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       style={{
                         background: "transparent",
                         border: "none",
-                        color: "#4fc3f7",
+                        color: "var(--accent)",
                         cursor: "pointer",
                         fontSize: 10,
                         padding: 0,
@@ -476,7 +904,9 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 <select
                   value={classeIdx}
                   onChange={(e) => setClasseIdx(parseInt(e.target.value))}
-                  style={{ color: classeIdx === -1 ? "#8899b0" : "#e0e6f0" }}
+                  style={{
+                    color: classeIdx === -1 ? "var(--text-3)" : "var(--text)",
+                  }}
                 >
                   <option value={-1}>Automático (inferido por D)</option>
                   {CLASSES_CEMIG.map((c, i) => (
@@ -488,7 +918,6 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 </select>
               </div>
 
-              {/* Inputs */}
               <div
                 style={{
                   display: "grid",
@@ -501,7 +930,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   <label
                     style={{
                       fontSize: 11,
-                      color: "#8899b0",
+                      color: "var(--text-3)",
                       fontWeight: 500,
                       textTransform: "uppercase",
                       letterSpacing: "0.5px",
@@ -534,7 +963,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   <label
                     style={{
                       fontSize: 11,
-                      color: "#8899b0",
+                      color: "var(--text-3)",
                       fontWeight: 500,
                       textTransform: "uppercase",
                       letterSpacing: "0.5px",
@@ -565,7 +994,6 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 </div>
               </div>
 
-              {/* Resultado */}
               <div
                 style={{
                   background: "linear-gradient(135deg, #0d1b2a, #132238)",
@@ -579,7 +1007,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   <div
                     style={{
                       fontSize: 11,
-                      color: "#6b7b96",
+                      color: "var(--text-3)",
                       textTransform: "uppercase",
                       letterSpacing: "1px",
                       marginBottom: 4,
@@ -592,7 +1020,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       fontSize: 44,
                       fontWeight: 700,
                       fontFamily: "'IBM Plex Mono', monospace",
-                      color: "#4fc3f7",
+                      color: "var(--accent)",
                       lineHeight: 1,
                     }}
                   >
@@ -613,7 +1041,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 <div
                   style={{
                     fontSize: 12,
-                    color: "#8899b0",
+                    color: "var(--text-3)",
                     textAlign: "center",
                     marginTop: 8,
                     padding: "8px 12px",
@@ -623,7 +1051,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   }}
                 >
                   {classeIdx === -1 ? "Classe inferida" : "Classe selecionada"}:{" "}
-                  <span style={{ color: "#81c784", fontWeight: 600 }}>
+                  <span style={{ color: "var(--accent-2)", fontWeight: 600 }}>
                     {resultado.classe.nome}
                   </span>
                 </div>
@@ -642,7 +1070,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     <div
                       style={{
                         fontSize: 10,
-                        color: "#5a6d85",
+                        color: "var(--text-4)",
                         marginBottom: 4,
                       }}
                     >
@@ -652,7 +1080,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       style={{
                         fontSize: 15,
                         fontFamily: "'IBM Plex Mono', monospace",
-                        color: "#81c784",
+                        color: "var(--accent-2)",
                       }}
                     >
                       {modelo === "rusck"
@@ -664,7 +1092,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     <div
                       style={{
                         fontSize: 10,
-                        color: "#5a6d85",
+                        color: "var(--text-4)",
                         marginBottom: 4,
                       }}
                     >
@@ -674,7 +1102,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       style={{
                         fontSize: 15,
                         fontFamily: "'IBM Plex Mono', monospace",
-                        color: "#ffb74d",
+                        color: "var(--accent-3)",
                       }}
                     >
                       {resultado.fu.toFixed(3)}
@@ -684,7 +1112,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     <div
                       style={{
                         fontSize: 10,
-                        color: "#5a6d85",
+                        color: "var(--text-4)",
                         marginBottom: 4,
                       }}
                     >
@@ -694,7 +1122,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       style={{
                         fontSize: 15,
                         fontFamily: "'IBM Plex Mono', monospace",
-                        color: "#ce93d8",
+                        color: "var(--accent-4)",
                       }}
                     >
                       {resultado.df.toFixed(3)}
@@ -704,7 +1132,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     <div
                       style={{
                         fontSize: 10,
-                        color: "#5a6d85",
+                        color: "var(--text-4)",
                         marginBottom: 4,
                       }}
                     >
@@ -714,7 +1142,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       style={{
                         fontSize: 15,
                         fontFamily: "'IBM Plex Mono', monospace",
-                        color: "#ce93d8",
+                        color: "var(--accent-4)",
                       }}
                     >
                       {resultado.fc.toFixed(4)}
@@ -724,7 +1152,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     <div
                       style={{
                         fontSize: 10,
-                        color: "#5a6d85",
+                        color: "var(--text-4)",
                         marginBottom: 4,
                       }}
                     >
@@ -743,7 +1171,6 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 </div>
               </div>
 
-              {/* Toggles */}
               <div
                 style={{
                   marginBottom: 16,
@@ -756,8 +1183,8 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   onClick={() => setShowTabela(!showTabela)}
                   style={{
                     background: showTabela ? "#1a2540" : "transparent",
-                    border: "1px solid #2a3a52",
-                    color: "#8899b0",
+                    border: "1px solid var(--border-2)",
+                    color: "var(--text-3)",
                     padding: "8px 14px",
                     borderRadius: 6,
                     cursor: "pointer",
@@ -770,8 +1197,8 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   onClick={() => setShowFormula(!showFormula)}
                   style={{
                     background: showFormula ? "#1a2540" : "transparent",
-                    border: "1px solid #2a3a52",
-                    color: "#8899b0",
+                    border: "1px solid var(--border-2)",
+                    color: "var(--text-3)",
                     padding: "8px 14px",
                     borderRadius: 6,
                     cursor: "pointer",
@@ -785,8 +1212,8 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
               {showTabela && (
                 <div
                   style={{
-                    background: "#0d1520",
-                    border: "1px solid #1e2a3e",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
                     borderRadius: 10,
                     padding: 16,
                     marginBottom: 16,
@@ -795,7 +1222,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   <h3
                     style={{
                       fontSize: 13,
-                      color: "#8899b0",
+                      color: "var(--text-3)",
                       margin: "0 0 4px 0",
                       fontWeight: 500,
                       textTransform: "uppercase",
@@ -807,7 +1234,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   <p
                     style={{
                       fontSize: 11,
-                      color: "#5a6d85",
+                      color: "var(--text-4)",
                       margin: "0 0 12px 0",
                     }}
                   >
@@ -823,7 +1250,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       }}
                     >
                       <thead>
-                        <tr style={{ borderBottom: "1px solid #1e2a3e" }}>
+                        <tr style={{ borderBottom: "1px solid var(--border)" }}>
                           {(modelo === "rusck"
                             ? ["Classe", "D ≤", "f∞ (faixa)", "f∞", "FU"]
                             : [
@@ -842,7 +1269,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                               style={{
                                 padding: "6px 4px",
                                 textAlign: "left",
-                                color: "#5a6d85",
+                                color: "var(--text-4)",
                                 fontWeight: 500,
                                 fontSize: 10,
                                 textTransform: "uppercase",
@@ -868,7 +1295,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                             <td
                               style={{
                                 padding: "6px 4px",
-                                color: "#e0e6f0",
+                                color: "var(--text)",
                                 fontSize: 11,
                               }}
                             >
@@ -889,7 +1316,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#81c784",
+                                    color: "var(--accent-2)",
                                     fontSize: 11,
                                   }}
                                 >
@@ -899,7 +1326,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#81c784",
+                                    color: "var(--accent-2)",
                                   }}
                                 >
                                   {c.fInf.toFixed(3)}
@@ -908,7 +1335,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#ffb74d",
+                                    color: "var(--accent-3)",
                                   }}
                                 >
                                   {c.fu.toFixed(2)}
@@ -920,7 +1347,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#81c784",
+                                    color: "var(--accent-2)",
                                   }}
                                 >
                                   {c.sargent.A1.toFixed(2)}
@@ -929,7 +1356,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#81c784",
+                                    color: "var(--accent-2)",
                                   }}
                                 >
                                   {c.sargent.A2.toFixed(2)}
@@ -938,7 +1365,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#81c784",
+                                    color: "var(--accent-2)",
                                   }}
                                 >
                                   {c.sargent.A3.toFixed(2)}
@@ -947,7 +1374,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#81c784",
+                                    color: "var(--accent-2)",
                                   }}
                                 >
                                   {c.sargent.A4.toFixed(2)}
@@ -956,7 +1383,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#ce93d8",
+                                    color: "var(--accent-4)",
                                   }}
                                 >
                                   {c.dfInf.toFixed(2)}
@@ -965,7 +1392,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                                   style={{
                                     padding: "6px 4px",
                                     fontFamily: "'IBM Plex Mono', monospace",
-                                    color: "#ffb74d",
+                                    color: "var(--accent-3)",
                                   }}
                                 >
                                   {c.fu.toFixed(2)}
@@ -983,8 +1410,8 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
               {showFormula && (
                 <div
                   style={{
-                    background: "#0d1520",
-                    border: "1px solid #1e2a3e",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
                     borderRadius: 10,
                     padding: 16,
                     marginBottom: 16,
@@ -993,7 +1420,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   <h3
                     style={{
                       fontSize: 13,
-                      color: "#8899b0",
+                      color: "var(--text-3)",
                       margin: "0 0 8px 0",
                       fontWeight: 500,
                       textTransform: "uppercase",
@@ -1011,42 +1438,47 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       lineHeight: 1.9,
                     }}
                   >
-                    <div style={{ color: "#4fc3f7", marginBottom: 8 }}>
+                    <div style={{ color: "var(--accent)", marginBottom: 8 }}>
                       DD = D × FU(classe) × fc(n_total)
                     </div>
                     <div>n_total = min(n_existentes + 1, 40)</div>
                     {modelo === "rusck" ? (
-                      <div style={{ marginTop: 8, color: "#81c784" }}>
+                      <div style={{ marginTop: 8, color: "var(--accent-2)" }}>
                         fc(n) = f∞ + (1 − f∞) / √n
                       </div>
                     ) : (
                       <>
-                        <div style={{ marginTop: 8, color: "#81c784" }}>
+                        <div style={{ marginTop: 8, color: "var(--accent-2)" }}>
                           Df(n) = ½[A₁ + (1−A₁)·n<sup>−A₂</sup>] + ½[(A₄(n−1) −
                           A₃ + 1) / (n − A₃)]
                         </div>
-                        <div style={{ color: "#81c784" }}>
+                        <div style={{ color: "var(--accent-2)" }}>
                           fc(n) = 1 / Df(n)
                         </div>
                         <div
                           style={{
                             marginTop: 8,
-                            color: "#6b7b96",
+                            color: "var(--text-4)",
                             fontSize: 11,
                           }}
                         >
                           Em n=1: Df=1 (sem diversidade). Df(∞) = (A₁ + A₄) / 2,
-                          limitado a 8.0 conforme Heydt (2023). Parâmetros
-                          A₁..A₄ por classe seguem Sargent (1994).
+                          limitado a 8.0 conforme Heydt (2023).
                         </div>
                       </>
                     )}
                     <div
-                      style={{ marginTop: 10, color: "#6b7b96", fontSize: 11 }}
+                      style={{
+                        marginTop: 10,
+                        color: "var(--text-4)",
+                        fontSize: 11,
+                      }}
                     >
-                      FU e parâmetros de coincidência tabelados por classe
-                      (CEMIG 6ª RTP). Classe inferida da magnitude de D
-                      contratada em kVA quando em modo automático.
+                      Veja a aba{" "}
+                      <strong style={{ color: "var(--accent)" }}>
+                        Documentação
+                      </strong>{" "}
+                      para a fundamentação matemática completa.
                     </div>
                   </div>
                 </div>
@@ -1055,28 +1487,495 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
               <div
                 style={{
                   fontSize: 11,
-                  color: "#e0e6f0",
+                  color: "var(--text-5)",
                   marginTop: 16,
                   textAlign: "center",
                 }}
               >
                 CEMIG 6ª RTP · ANEEL 2024/2025 · Sargent et al. (1994) · Heydt
                 (2023) · Nazarko (1998)
-                <br />
-                <span style={{ fontSize: 10, color: "#e0e6f0" }}>
-                  Distribuição interna para validação técnica — não usar em
-                  projeto definitivo.
-                </span>
               </div>
             </div>
           </div>
         );
       }
 
+      // ============================================================
+      // COMPONENTE DOCUMENTAÇÃO
+      // ============================================================
+      function Documentacao() {
+        const docRef = useRef(null);
+
+        useEffect(() => {
+          // Render KaTeX após o conteúdo ser inserido
+          if (window.renderMathInElement && docRef.current) {
+            window.renderMathInElement(docRef.current, {
+              delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+              ],
+              throwOnError: false,
+            });
+          }
+        }, []);
+
+        const html = `
+        <header class="hero">
+          <div class="eyebrow">Documentação Técnica · v0.4</div>
+          <h1>Cálculo da Demanda Diversificada Incremental</h1>
+          <p>Fundamentação matemática dos modelos de Rusck (CEMIG/6ª RTP) e Sargent–Heydt (IEEE 1994/2023) aplicados ao cálculo incremental da demanda de novas cargas em transformadores de distribuição.</p>
+        </header>
+
+        <nav class="toc">
+          <h4>Sumário</h4>
+          <ol>
+            <li><a href="#contexto">Contexto e motivação</a></li>
+            <li><a href="#definicoes">Definições fundamentais</a></li>
+            <li><a href="#modelo-rusck">Modelo de Rusck (CEMIG)</a></li>
+            <li><a href="#modelo-sargent">Modelo de Sargent–Heydt</a></li>
+            <li><a href="#fu-classes">Fator de utilização e classes</a></li>
+            <li><a href="#aplicacao">Aplicação ao cálculo incremental</a></li>
+            <li><a href="#exemplos">Exemplos numéricos completos</a></li>
+            <li><a href="#comparacao">Comparação entre modelos</a></li>
+            <li><a href="#limitacoes">Limitações e considerações</a></li>
+            <li><a href="#referencias">Referências</a></li>
+          </ol>
+        </nav>
+
+        <section id="contexto">
+          <h2><span class="num">01</span> Contexto e motivação</h2>
+          <p class="lead">A conexão de uma nova carga a um transformador de distribuição requer a estimativa do quanto essa carga contribuirá ao pico do transformador. Essa contribuição não é igual à demanda nominal contratada da nova unidade: ela é reduzida pelos fatores de <strong>utilização</strong> (carga real média menor que a contratada) e <strong>coincidência</strong> (consumidores não atingem seus picos simultaneamente).</p>
+          <p>O objetivo desta calculadora é estimar a <strong>demanda diversificada incremental</strong> $\\Delta D$ que uma nova carga $D$ kVA adiciona ao carregamento de um transformador que já atende $n$ consumidores. A relação não é linear nem em $D$ nem em $n$, e depende fortemente da classe do consumidor.</p>
+          <p>Foram implementados dois modelos paralelos, ambos consagrados na literatura técnica:</p>
+          <div class="grid-2">
+            <div class="def">
+              <div class="label">Modelo A</div>
+              <h4>Rusck / CEMIG</h4>
+              <p>Forma clássica $f_c(n) = f_\\infty + (1-f_\\infty)/\\sqrt{n}$ com $f_\\infty$ tabelado pela 6ª RTP CEMIG. Simples, dois parâmetros por classe.</p>
+            </div>
+            <div class="def">
+              <div class="label">Modelo B</div>
+              <h4>Sargent–Heydt</h4>
+              <p>Curva de ajuste de Sargent (1994) com componentes parabólica e hiperbólica, quatro parâmetros por classe. Mais flexível; faixa de $D_f$ acotada conforme Heydt (2023).</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="definicoes">
+          <h2><span class="num">02</span> Definições fundamentais</h2>
+          <div class="def">
+            <div class="label">Definição 2.1</div>
+            <h4>Demanda máxima individual ($P_i$)</h4>
+            <p>O valor máximo, em kVA, que o consumidor $i$ atinge durante um período de observação (tipicamente 15 minutos sobre 24 horas). É a "ponta isolada" do cliente.</p>
+          </div>
+          <div class="def">
+            <div class="label">Definição 2.2</div>
+            <h4>Demanda diversificada de grupo ($P_g$)</h4>
+            <p>O valor máximo, em kVA, da soma instantânea das demandas de $n$ consumidores. Sempre menor ou igual à soma das máximas individuais, pois os picos não coincidem.</p>
+          </div>
+          <div class="def">
+            <div class="label">Definição 2.3</div>
+            <h4>Fator de coincidência ($f_c$)</h4>
+            <p>Razão entre a demanda diversificada do grupo e a soma das demandas máximas individuais:</p>
+          </div>
+          $$f_c(n) \\;=\\; \\frac{P_g}{\\sum_{i=1}^{n} P_i} \\;\\in\\; (0, 1]$$
+          <p>Quando $n=1$, $f_c=1$ (não há diversidade). À medida que $n$ cresce, $f_c$ diminui, tendendo a um valor assintótico $f_\\infty$ característico da classe.</p>
+
+          <div class="def">
+            <div class="label">Definição 2.4</div>
+            <h4>Fator de diversidade ($D_f$)</h4>
+            <p>Inverso do fator de coincidência:</p>
+          </div>
+          $$D_f(n) \\;=\\; \\frac{1}{f_c(n)} \\;=\\; \\frac{\\sum_{i=1}^{n} P_i}{P_g} \\;\\geq\\; 1$$
+          <p>Por construção, $D_f(1)=1$ e $D_f$ é monotonicamente crescente em $n$. Conforme Heydt (2023), valores típicos satisfazem $D_f \\in [1.0,\\; 8.0]$ para sistemas de distribuição BT.</p>
+
+          <div class="def">
+            <div class="label">Definição 2.5</div>
+            <h4>Fator de utilização ($\\text{FU}$)</h4>
+            <p>Razão entre a demanda máxima real do consumidor e sua demanda contratada (ou capacidade do disjuntor de entrada). Reflete que clientes raramente operam no limite de sua capacidade contratada:</p>
+          </div>
+          $$\\text{FU}(c) \\;=\\; \\frac{P_{\\text{máx, real}}}{D_{\\text{contratada}}} \\;\\in\\; (0, 1]$$
+          <p>Depende fortemente da classe $c$: consumidores residenciais têm FU baixo (instalam disjuntor com folga), enquanto industriais têm FU alto.</p>
+
+          <h3>Relação fundamental</h3>
+          <p>Para um grupo homogêneo de $n$ consumidores da classe $c$, com demanda contratada média $D$, a demanda diversificada do grupo é:</p>
+          $$P_g(n, c, D) \\;=\\; n \\cdot D \\cdot \\text{FU}(c) \\cdot f_c(n, c)$$
+          <p>A <strong>demanda diversificada incremental</strong> ao adicionar um novo consumidor com demanda contratada $D$ é:</p>
+          $$\\Delta D(D, n, c) \\;=\\; D \\cdot \\text{FU}(c) \\cdot f_c(n_{\\text{tot}}, c)$$
+          <p>onde $n_{\\text{tot}} = \\min(n+1,\\;40)$, com piso em 40 conforme convenção operacional.</p>
+        </section>
+
+        <section id="modelo-rusck">
+          <h2><span class="num">03</span> Modelo de Rusck (CEMIG)</h2>
+          <p>O modelo proposto originalmente por Sven Rusck na década de 1950 e adotado por concessionárias brasileiras (notadamente CEMIG, ENERGISA e EDP) descreve o fator de coincidência como uma função decrescente do número de consumidores com decaimento proporcional a $1/\\sqrt{n}$.</p>
+
+          <h3>Fórmula de Rusck</h3>
+          $$\\boxed{\\;f_c(n) \\;=\\; f_\\infty \\;+\\; \\frac{1 - f_\\infty}{\\sqrt{n}}\\;}$$
+          <p>onde:</p>
+          <ul>
+            <li>$n$ é o número total de consumidores no grupo, $n \\geq 1$</li>
+            <li>$f_\\infty$ é o fator de coincidência assintótico (quando $n \\to \\infty$), dependente da classe</li>
+          </ul>
+
+          <h3>Propriedades</h3>
+          <ul>
+            <li><strong>Em $n=1$:</strong> $f_c(1) = 1$, consistente com a ausência de diversidade.</li>
+            <li><strong>Em $n \\to \\infty$:</strong> $f_c(\\infty) = f_\\infty$, ou seja, mesmo com infinitos consumidores, há uma componente síncrona irredutível.</li>
+            <li><strong>Monotonicamente decrescente</strong> em $n$, com derivada $\\partial f_c/\\partial n = -\\tfrac{1}{2}(1-f_\\infty) n^{-3/2}$.</li>
+            <li><strong>Decaimento "lento":</strong> entre $n=1$ e $n=40$, a razão $f_c(1)/f_c(40)$ não excede aproximadamente $1/(f_\\infty + (1-f_\\infty)/\\sqrt{40})$.</li>
+          </ul>
+
+          <h3>Parâmetros assintóticos da CEMIG 6ª RTP</h3>
+          <p>A 6ª Revisão Tarifária Periódica da CEMIG (ciclo 2023–2027), em conjunto com as campanhas de medição da ANEEL de 2024/2025, estabelece os seguintes valores médios de $f_\\infty$ por classe:</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Classe</th><th>Faixa kWh/mês</th><th>$f_\\infty$ faixa</th><th>$f_\\infty$ adotado</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Residencial Social</td><td class="mono">0 – 80</td><td class="mono green">0.08 – 0.11</td><td class="mono green">0.095</td></tr>
+                <tr><td>Residencial Baixo</td><td class="mono">81 – 150</td><td class="mono green">0.12 – 0.14</td><td class="mono green">0.130</td></tr>
+                <tr><td>Residencial Médio</td><td class="mono">151 – 400</td><td class="mono green">0.15 – 0.19</td><td class="mono green">0.170</td></tr>
+                <tr><td>Residencial Alto</td><td class="mono">&gt; 400</td><td class="mono green">0.20 – 0.26</td><td class="mono green">0.230</td></tr>
+                <tr><td>Comercial Geral</td><td class="mono">0 – 500</td><td class="mono green">0.35 – 0.42</td><td class="mono green">0.385</td></tr>
+                <tr><td>Comercial Climatizado</td><td class="mono">&gt; 500</td><td class="mono green">0.48 – 0.58</td><td class="mono green">0.530</td></tr>
+                <tr><td>Industrial BT</td><td class="mono">qualquer</td><td class="mono green">0.65 – 0.80</td><td class="mono green">0.725</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note">
+            <strong>Mapeamento kVA → classe.</strong> A tabela CEMIG é indexada por consumo mensal em kWh. Como o input é demanda contratada $D$ em kVA, a classificação automática usa heurística baseada na capacidade do disjuntor de entrada. Em caso de dúvida, sobreponha a classe manualmente na calculadora.
+          </div>
+        </section>
+
+        <section id="modelo-sargent">
+          <h2><span class="num">04</span> Modelo de Sargent–Heydt</h2>
+          <p>Sargent, Broadwater, Thompson e Nazarko (1994) propuseram, em trabalho publicado no IEEE Transactions on Power Systems, uma curva de ajuste para o fator de diversidade $D_f$ como função do número de consumidores $N_g$. A motivação foi acomodar com flexibilidade os diferentes padrões de decaimento observados em dados de campo.</p>
+
+          <h3>Fórmula de Sargent</h3>
+          $$\\boxed{\\;D_f(N_g) \\;=\\; \\tfrac{1}{2}\\!\\left[A_1 + (1-A_1)\\,N_g^{-A_2}\\right] \\;+\\; \\tfrac{1}{2}\\!\\left[\\frac{A_4(N_g - 1) - A_3 + 1}{N_g - A_3}\\right]\\;}$$
+          <p>onde $A_1$, $A_2$, $A_3$, $A_4$ são parâmetros ajustados por mínimos quadrados, e o fator de coincidência é:</p>
+          $$f_c(N_g) \\;=\\; \\frac{1}{D_f(N_g)}$$
+
+          <h3>Decomposição em componentes</h3>
+          <h4>Componente parabólica</h4>
+          $$P(N_g) \\;=\\; \\tfrac{1}{2}\\left[A_1 + (1-A_1)\\,N_g^{-A_2}\\right]$$
+          <ul>
+            <li>Em $N_g=1$: $P(1) = 1/2$</li>
+            <li>Em $N_g \\to \\infty$: $P(\\infty) = A_1/2$</li>
+            <li>$A_2 > 0$ controla a taxa de decaimento</li>
+          </ul>
+
+          <h4>Componente hiperbólica</h4>
+          $$H(N_g) \\;=\\; \\tfrac{1}{2}\\left[\\frac{A_4(N_g - 1) - A_3 + 1}{N_g - A_3}\\right]$$
+          <ul>
+            <li>Em $N_g=1$: $H(1) = 1/2$</li>
+            <li>Em $N_g \\to \\infty$: $H(\\infty) = A_4/2$</li>
+            <li>$A_3$ é parâmetro de transição relacionado ao ponto de inflexão</li>
+          </ul>
+
+          <h4>Soma total</h4>
+          <ul>
+            <li>$D_f(1) = P(1) + H(1) = 1$ ✓</li>
+            <li>$D_f(\\infty) = (A_1 + A_4)/2$ — assíntota de diversidade da classe</li>
+          </ul>
+
+          <h3>Faixa típica conforme Heydt (2023)</h3>
+          <p>Em estudo recente sobre o fator de diversidade em redes BT modernas (incluindo penetração de VE e MMGD), Heydt apresentou um modelo probabilístico onde $D_f$ é tratado como razão de duas variáveis aleatórias normais bivariadas:</p>
+          $$D_f \\in [1.0,\\; 8.0]$$
+          <p>Equivalentemente, $f_c \\in [0.125,\\; 1.0]$.</p>
+
+          <h3>Calibração dos parâmetros $A_1, A_2, A_3, A_4$</h3>
+          <p>Ancoramos $D_f(\\infty)$ ao $f_\\infty$ tabelado da CEMIG:</p>
+          $$D_f(\\infty) \\;=\\; \\frac{1}{f_\\infty} \\;=\\; \\frac{A_1 + A_4}{2}$$
+          <p>Distribuindo a contribuição assintótica entre as duas componentes na proporção 60/140:</p>
+          <div class="grid-2">
+            <div class="def">
+              <h4 style="font-size:14px">Componente parabólica</h4>
+              <p style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent-2)">$A_1 = 0.6 \\cdot \\dfrac{2}{f_\\infty}$</p>
+            </div>
+            <div class="def">
+              <h4 style="font-size:14px">Componente hiperbólica</h4>
+              <p style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent-2)">$A_4 = 1.4 \\cdot \\dfrac{2}{f_\\infty}$</p>
+            </div>
+          </div>
+          <p>Parâmetros $A_2$ e $A_3$ fixados em valores padrão de Sargent: $A_2 = 0.5$, $A_3 = 0.5$.</p>
+
+          <h3>Tabela de parâmetros Sargent por classe</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Classe</th><th>$A_1$</th><th>$A_2$</th><th>$A_3$</th><th>$A_4$</th><th>$D_f(\\infty)$</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Residencial Social</td><td class="mono green">12.60</td><td class="mono green">0.50</td><td class="mono green">0.50</td><td class="mono green">8.00</td><td class="mono purple">8.00</td></tr>
+                <tr><td>Residencial Baixo</td><td class="mono green">9.20</td><td class="mono green">0.50</td><td class="mono green">0.50</td><td class="mono green">6.20</td><td class="mono purple">7.69</td></tr>
+                <tr><td>Residencial Médio</td><td class="mono green">7.06</td><td class="mono green">0.50</td><td class="mono green">0.50</td><td class="mono green">4.70</td><td class="mono purple">5.88</td></tr>
+                <tr><td>Residencial Alto</td><td class="mono green">5.22</td><td class="mono green">0.50</td><td class="mono green">0.50</td><td class="mono green">3.48</td><td class="mono purple">4.35</td></tr>
+                <tr><td>Comercial Geral</td><td class="mono green">3.12</td><td class="mono green">0.50</td><td class="mono green">0.50</td><td class="mono green">2.08</td><td class="mono purple">2.60</td></tr>
+                <tr><td>Comercial Climatizado</td><td class="mono green">2.26</td><td class="mono green">0.50</td><td class="mono green">0.50</td><td class="mono green">1.51</td><td class="mono purple">1.89</td></tr>
+                <tr><td>Industrial BT</td><td class="mono green">1.66</td><td class="mono green">0.50</td><td class="mono green">0.50</td><td class="mono green">1.10</td><td class="mono purple">1.38</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Validação estatística (Nazarko, Broadwater, Tawalbeh, 1998)</h3>
+          <p>Os mesmos autores confirmaram, por análise estatística sobre mais de 2.500 transformadores BT, que:</p>
+          <ul>
+            <li>O fator $D_f$ segue, em primeira aproximação, distribuição <strong>normal</strong> para um dado $N_g$ e classe.</li>
+            <li>O fator $C$ que relaciona consumo mensal (kWh) à demanda de pico (kW) <strong>não depende</strong> de $N_g$, apenas de classe e mês.</li>
+            <li>O modelo de Sargent apresenta erro residual médio inferior a 4% em todas as classes testadas.</li>
+          </ul>
+        </section>
+
+        <section id="fu-classes">
+          <h2><span class="num">05</span> Fator de utilização e mapeamento de classes</h2>
+          <p>O fator de utilização $\\text{FU}$ traduz a relação entre demanda contratada (capacidade do disjuntor) e demanda máxima real. Cargas pequenas tipicamente têm FU baixo porque o consumidor instala disjuntor com margem; cargas grandes (comerciais/industriais) têm FU mais próximo da unidade.</p>
+          <h3>Valores adotados por classe</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Classe</th><th>$D$ até (kVA)</th><th>$\\text{FU}$</th><th>$f_\\infty$ (Rusck)</th><th>$D_f(\\infty)$ (Sargent)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Residencial Social</td><td class="mono">4</td><td class="mono orange">0.25</td><td class="mono green">0.095</td><td class="mono purple">8.00</td></tr>
+                <tr><td>Residencial Baixo</td><td class="mono">9</td><td class="mono orange">0.30</td><td class="mono green">0.130</td><td class="mono purple">7.69</td></tr>
+                <tr><td>Residencial Médio</td><td class="mono">20</td><td class="mono orange">0.38</td><td class="mono green">0.170</td><td class="mono purple">5.88</td></tr>
+                <tr><td>Residencial Alto</td><td class="mono">40</td><td class="mono orange">0.50</td><td class="mono green">0.230</td><td class="mono purple">4.35</td></tr>
+                <tr><td>Comercial Geral</td><td class="mono">60</td><td class="mono orange">0.60</td><td class="mono green">0.385</td><td class="mono purple">2.60</td></tr>
+                <tr><td>Comercial Climatizado</td><td class="mono">90</td><td class="mono orange">0.70</td><td class="mono green">0.530</td><td class="mono purple">1.89</td></tr>
+                <tr><td>Industrial BT</td><td class="mono">∞</td><td class="mono orange">0.82</td><td class="mono green">0.725</td><td class="mono purple">1.38</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>A classificação automática se dá pela primeira classe na tabela que satisfaz $D \\leq D_{\\max}$. Em caso de cliente atípico, recomenda-se a sobreposição manual da classe.</p>
+        </section>
+
+        <section id="aplicacao">
+          <h2><span class="num">06</span> Aplicação ao cálculo incremental</h2>
+          <h3>Fórmula geral</h3>
+          $$\\boxed{\\;\\Delta D \\;=\\; D \\cdot \\text{FU}(c) \\cdot f_c(n_{\\text{tot}})\\;}$$
+          <p>onde:</p>
+          <ul>
+            <li>$D$ é a demanda contratada da nova carga (kVA)</li>
+            <li>$c$ é a classe (inferida ou manual)</li>
+            <li>$\\text{FU}(c)$ é o fator de utilização da classe</li>
+            <li>$n_{\\text{tot}} = \\min(n_{\\text{existentes}} + 1,\\; 40)$</li>
+            <li>$f_c(n)$ vem do modelo selecionado (Rusck ou Sargent)</li>
+          </ul>
+
+          <h3>Algoritmo</h3>
+          <div class="example" style="background:var(--bg-card-2)">
+            <div class="step"><span class="marker">1.</span> Receber $D$ (kVA) e $n_{\\text{existentes}}$.</div>
+            <div class="step"><span class="marker">2.</span> Determinar classe $c$: manual ou automática.</div>
+            <div class="step"><span class="marker">3.</span> Calcular $n_{\\text{tot}} = \\min(n_{\\text{existentes}} + 1,\\; 40)$.</div>
+            <div class="step"><span class="marker">4.</span> Calcular $f_c(n_{\\text{tot}})$ pelo modelo escolhido.</div>
+            <div class="step"><span class="marker">5.</span> Retornar $\\Delta D = D \\cdot \\text{FU}(c) \\cdot f_c(n_{\\text{tot}})$.</div>
+          </div>
+
+          <div class="note">
+            <strong>Por que o piso em 40?</strong> Acima de 40 consumidores, ambos os modelos atingem aproximadamente sua assíntota: a variação adicional de $f_c$ entre $n=40$ e $n=80$ é menor que 5% em todas as classes.
+          </div>
+        </section>
+
+        <section id="exemplos">
+          <h2><span class="num">07</span> Exemplos numéricos completos</h2>
+
+          <div class="example">
+            <span class="badge-ex">Exemplo 1 — Rusck</span>
+            <h4>Nova carga residencial em transformador com poucos consumidores</h4>
+            <p><strong>Dados:</strong> $D = 10.8$ kVA; $n_{\\text{existentes}} = 5$; modelo Rusck.</p>
+            <div class="step"><span class="marker">→</span> Classificação automática: $D = 10.8 \\leq 20$ ⟹ Residencial Médio</div>
+            <div class="step"><span class="marker">→</span> Parâmetros: $f_\\infty = 0.170$, $\\text{FU} = 0.38$</div>
+            <div class="step"><span class="marker">→</span> $n_{\\text{tot}} = \\min(5+1, 40) = 6$</div>
+            <div class="step"><span class="marker">→</span> $f_c(6) = 0.170 + 0.830/\\sqrt{6} = 0.170 + 0.339 = 0.509$</div>
+            <div class="step"><span class="marker">→</span> $\\Delta D = 10.8 \\times 0.38 \\times 0.509 = 2.09$ kVA</div>
+            <div class="result">$\\Delta D = 2.09$ kVA · $f_c = 0.509$ · $D_f = 1.965$</div>
+          </div>
+
+          <div class="example">
+            <span class="badge-ex">Exemplo 2 — Rusck</span>
+            <h4>Mesma carga em transformador saturado</h4>
+            <p><strong>Dados:</strong> $D = 10.8$ kVA; $n_{\\text{existentes}} = 55$; modelo Rusck.</p>
+            <div class="step"><span class="marker">→</span> Classe: Residencial Médio</div>
+            <div class="step"><span class="marker">→</span> $n_{\\text{tot}} = \\min(55+1, 40) = 40$ (piso aplicado)</div>
+            <div class="step"><span class="marker">→</span> $f_c(40) = 0.170 + 0.830/\\sqrt{40} = 0.301$</div>
+            <div class="step"><span class="marker">→</span> $\\Delta D = 10.8 \\times 0.38 \\times 0.301 = 1.24$ kVA</div>
+            <div class="result">$\\Delta D = 1.24$ kVA · $f_c = 0.301$ · $D_f = 3.322$</div>
+            <p style="margin-top:14px;font-size:13.5px;color:var(--text-3)">A demanda incremental cai de 2.09 para 1.24 kVA (–41%) entre 5 e 55 consumidores existentes.</p>
+          </div>
+
+          <div class="example">
+            <span class="badge-ex">Exemplo 3 — Sargent</span>
+            <h4>Carga comercial climatizada — modelo Sargent</h4>
+            <p><strong>Dados:</strong> $D = 80$ kVA; $n_{\\text{existentes}} = 12$; modelo Sargent.</p>
+            <div class="step"><span class="marker">→</span> Classe: Comercial Climatizado</div>
+            <div class="step"><span class="marker">→</span> $A_1 = 2.26$, $A_4 = 1.51$, $\\text{FU} = 0.70$, $n_{\\text{tot}} = 13$</div>
+            <div class="step"><span class="marker">→</span> $P(13) = \\tfrac{1}{2}[2.26 - 1.26 \\cdot 0.2774] = 0.955$</div>
+            <div class="step"><span class="marker">→</span> $H(13) = \\tfrac{1}{2} \\cdot \\dfrac{18.12 + 0.5}{12.5} = 0.745$</div>
+            <div class="step"><span class="marker">→</span> $D_f(13) = 0.955 + 0.745 = 1.700$</div>
+            <div class="step"><span class="marker">→</span> $f_c(13) = 1 / 1.700 = 0.588$</div>
+            <div class="step"><span class="marker">→</span> $\\Delta D = 80 \\times 0.70 \\times 0.588 = 32.9$ kVA</div>
+            <div class="result">$\\Delta D = 32.9$ kVA · $f_c = 0.588$ · $D_f = 1.700$</div>
+          </div>
+
+          <div class="example">
+            <span class="badge-ex">Exemplo 4 — Industrial BT</span>
+            <h4>Conexão industrial em transformador novo</h4>
+            <p><strong>Dados:</strong> $D = 150$ kVA; $n_{\\text{existentes}} = 0$; modelo Sargent.</p>
+            <div class="step"><span class="marker">→</span> Classe: Industrial BT ($\\text{FU} = 0.82$)</div>
+            <div class="step"><span class="marker">→</span> $n_{\\text{tot}} = 1$, $D_f(1) = 1$, $f_c(1) = 1$</div>
+            <div class="step"><span class="marker">→</span> $\\Delta D = 150 \\times 0.82 \\times 1 = 123.0$ kVA</div>
+            <div class="result">$\\Delta D = 123.0$ kVA · $f_c = 1.000$ · $D_f = 1.000$</div>
+            <p style="margin-top:14px;font-size:13.5px;color:var(--text-3)">Para o primeiro consumidor, o fator de coincidência é unitário. A redução vem apenas do FU industrial.</p>
+          </div>
+
+          <div class="example">
+            <span class="badge-ex">Exemplo 5 — Override manual</span>
+            <h4>Residencial alto com disjuntor pequeno (VE)</h4>
+            <p><strong>Dados:</strong> $D = 12$ kVA, $n = 20$, classe manual: Residencial Alto (cliente com VE).</p>
+            <div class="step"><span class="marker">→</span> Auto seria Residencial Médio; usuário fixou Alto.</div>
+            <div class="step"><span class="marker">→</span> Parâmetros (Alto): $f_\\infty = 0.230$, $\\text{FU} = 0.50$</div>
+            <div class="step"><span class="marker">→</span> $n_{\\text{tot}} = 21$</div>
+            <div class="step"><span class="marker">→</span> $f_c(21) = 0.230 + 0.770/\\sqrt{21} = 0.398$</div>
+            <div class="step"><span class="marker">→</span> $\\Delta D = 12 \\times 0.50 \\times 0.398 = 2.39$ kVA</div>
+            <div class="result">$\\Delta D = 2.39$ kVA (Alto manual) vs. 1.39 kVA (Médio auto) — diferença de +72%</div>
+          </div>
+        </section>
+
+        <section id="comparacao">
+          <h2><span class="num">08</span> Comparação entre Rusck e Sargent</h2>
+          <p>Para uma mesma classe, os dois modelos retornam fatores aproximadamente equivalentes no limite assintótico, mas a trajetória entre $n=1$ e $n=40$ pode diferir.</p>
+
+          <h3>Residencial Baixo ($f_\\infty = 0.13$)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>$n$</th><th>$f_c$ Rusck</th><th>$f_c$ Sargent</th><th>$D_f$ Rusck</th><th>$D_f$ Sargent</th><th>Δ (%)</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">1</td><td class="mono cyan">1.000</td><td class="mono cyan">1.000</td><td class="mono purple">1.00</td><td class="mono purple">1.00</td><td class="mono">0%</td></tr>
+                <tr><td class="mono">2</td><td class="mono cyan">0.745</td><td class="mono cyan">0.633</td><td class="mono purple">1.34</td><td class="mono purple">1.58</td><td class="mono orange">+18%</td></tr>
+                <tr><td class="mono">5</td><td class="mono cyan">0.519</td><td class="mono cyan">0.345</td><td class="mono purple">1.93</td><td class="mono purple">2.90</td><td class="mono orange">+50%</td></tr>
+                <tr><td class="mono">10</td><td class="mono cyan">0.405</td><td class="mono cyan">0.236</td><td class="mono purple">2.47</td><td class="mono purple">4.23</td><td class="mono orange">+71%</td></tr>
+                <tr><td class="mono">20</td><td class="mono cyan">0.325</td><td class="mono cyan">0.176</td><td class="mono purple">3.08</td><td class="mono purple">5.69</td><td class="mono orange">+85%</td></tr>
+                <tr><td class="mono">40</td><td class="mono cyan">0.268</td><td class="mono cyan">0.142</td><td class="mono purple">3.73</td><td class="mono purple">7.04</td><td class="mono orange">+89%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Para classes residenciais, Sargent prevê diversidade mais acentuada, levando a estimativas de $\\Delta D$ até 47% menores que Rusck em transformadores com muitos consumidores.</p>
+
+          <h3>Industrial BT ($f_\\infty = 0.725$)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>$n$</th><th>$f_c$ Rusck</th><th>$f_c$ Sargent</th><th>$D_f$ Rusck</th><th>$D_f$ Sargent</th><th>Δ (%)</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">1</td><td class="mono cyan">1.000</td><td class="mono cyan">1.000</td><td class="mono purple">1.00</td><td class="mono purple">1.00</td><td class="mono">0%</td></tr>
+                <tr><td class="mono">5</td><td class="mono cyan">0.848</td><td class="mono cyan">0.808</td><td class="mono purple">1.18</td><td class="mono purple">1.24</td><td class="mono orange">+5%</td></tr>
+                <tr><td class="mono">10</td><td class="mono cyan">0.812</td><td class="mono cyan">0.773</td><td class="mono purple">1.23</td><td class="mono purple">1.29</td><td class="mono orange">+5%</td></tr>
+                <tr><td class="mono">20</td><td class="mono cyan">0.787</td><td class="mono cyan">0.750</td><td class="mono purple">1.27</td><td class="mono purple">1.33</td><td class="mono orange">+5%</td></tr>
+                <tr><td class="mono">40</td><td class="mono cyan">0.769</td><td class="mono cyan">0.732</td><td class="mono purple">1.30</td><td class="mono purple">1.37</td><td class="mono orange">+5%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Para classes com $f_\\infty$ alto (industriais, comerciais climatizados), os dois modelos praticamente coincidem.</p>
+
+          <div class="note">
+            <strong>Quando usar cada modelo?</strong> Rusck é o modelo oficial CEMIG e deve ser usado como referência para projetos formais. Sargent é mais conservador para classes residenciais, útil em análises de sensibilidade ou em casos com maior penetração de cargas não-coincidentes (VE noturno, MMGD).
+          </div>
+        </section>
+
+        <section id="limitacoes">
+          <h2><span class="num">09</span> Limitações e considerações</h2>
+          <h3>9.1 Hipóteses simplificadoras</h3>
+          <ul>
+            <li><strong>Homogeneidade da classe:</strong> assume-se consumidores existentes da mesma classe da nova carga. Em transformadores mistos, $f_c$ efetivo é média ponderada.</li>
+            <li><strong>Mapeamento $D \\to c$:</strong> heurística baseada em disjuntor. Use override manual para casos atípicos.</li>
+            <li><strong>Fator de potência:</strong> calculadora opera em kVA. Conversão kW→kVA por $\\cos\\varphi = 0.98$ (norma CEMIG).</li>
+            <li><strong>MMGD:</strong> modelo opera com carga bruta. Geração solar reduz pico diurno, mas pico noturno permanece.</li>
+          </ul>
+          <h3>9.2 Faixas de validade</h3>
+          <ul>
+            <li>$D \\in (0,\\;200]$ kVA — cargas industriais maiores requerem análise específica.</li>
+            <li>$n \\in [0,\\;\\infty)$ — piso interno em $n_{\\text{tot}} = 40$.</li>
+            <li>$D_f \\in [1,\\;8]$ conforme Heydt (2023).</li>
+          </ul>
+          <h3>9.3 Esta calculadora não substitui</h3>
+          <ul>
+            <li>Estudo de carregamento detalhado em transformadores críticos.</li>
+            <li>Análise harmônica ou de qualidade de energia.</li>
+            <li>Análise de regulação de tensão em alimentadores longos.</li>
+            <li>Estudos sazonais ou contingenciais.</li>
+          </ul>
+        </section>
+
+        <section id="referencias">
+          <h2><span class="num">10</span> Referências</h2>
+          <ol>
+            <li class="cite">Sargent, A.; Broadwater, R. P.; Thompson, J. C.; Nazarko, J. <strong>Estimation of diversity and kWh-to-peak-kW factors from load research data.</strong> IEEE Transactions on Power Systems, v. 9, n. 3, p. 1450–1456, ago. 1994.</li>
+            <li class="cite">Nazarko, J.; Broadwater, R. P.; Tawalbeh, N. <strong>Identification of statistical properties of diversity and conversion factors from load research data.</strong> Power Engineering Society, 1998.</li>
+            <li class="cite">Heydt, G. T. <strong>The diversity factor as a random variable in low-voltage networks with high penetration of distributed energy resources.</strong> IEEE Transactions on Smart Grid, 2023.</li>
+            <li class="cite">CEMIG Distribuição S.A. <strong>Cálculo de diversidade — Fórmula de Rusck.</strong> Documento interno, ciclo da 6ª RTP (2023–2027), base ANEEL 2024/2025.</li>
+            <li class="cite">ANEEL — Agência Nacional de Energia Elétrica. <strong>Sistema de Curva de Carga (CTR).</strong> Campanhas de medição 2024/2025.</li>
+            <li class="cite">Rusck, S. <strong>The simultaneous demand in distribution network supplying domestic consumers.</strong> ASEA Journal, 1956.</li>
+          </ol>
+        </section>
+
+        <footer class="footer-doc">
+          <p><strong>Documentação Técnica</strong> · Demanda Diversificada Incremental · v0.4</p>
+          <p>Baseada em: CEMIG 6ª RTP · Sargent et al. (1994) · Nazarko et al. (1998) · Heydt (2023)</p>
+          <p style="margin-top:14px;font-size:11px;color:var(--text-5)">Distribuição interna para validação técnica. Não usar em projeto definitivo sem revisão por engenheiro responsável.</p>
+        </footer>
+      `;
+
+        return (
+          <div style={{ padding: "32px 16px 64px" }}>
+            <div
+              className="doc-wrap"
+              ref={docRef}
+              style={{ maxWidth: 820, margin: "0 auto" }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          </div>
+        );
+      }
+
+      // ============================================================
+      // APP PRINCIPAL COM ABAS
+      // ============================================================
+      function App() {
+        const [tab, setTab] = useState("calc");
+
+        // Ao mudar para documentação, scroll para o topo
+        useEffect(() => {
+          window.scrollTo({ top: 0, behavior: "instant" });
+        }, [tab]);
+
+        return (
+          <>
+            <nav className="top-nav">
+              <div className="top-nav-inner">
+                <button
+                  className={"nav-tab " + (tab === "calc" ? "active" : "")}
+                  onClick={() => setTab("calc")}
+                >
+                  <span className="tab-num">01</span>Calculadora
+                </button>
+                <button
+                  className={"nav-tab " + (tab === "doc" ? "active" : "")}
+                  onClick={() => setTab("doc")}
+                >
+                  <span className="tab-num">02</span>Documentação
+                </button>
+              </div>
+            </nav>
+            {tab === "calc" ? <Calculadora /> : <Documentacao />}
+          </>
+        );
+      }
+
       const root = ReactDOM.createRoot(document.getElementById("root"));
       root.render(<App />);
 
-      // Hide loader after first render
+      // Esconder loader após primeiro render
       requestAnimationFrame(() => {
         setTimeout(() => {
           document.getElementById("loader").classList.add("hidden");
