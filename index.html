@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demanda Diversificada Incremental — CEMIG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        background: #0a0f1a;
+        color: #e0e6f0;
+        min-height: 100vh;
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: #1e2a3e;
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #4fc3f7;
+        cursor: pointer;
+        box-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #4fc3f7;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
+      }
+      input[type="number"] {
+        background: #111927;
+        border: 1px solid #2a3a52;
+        color: #e0e6f0;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 15px;
+        width: 100%;
+        text-align: right;
+      }
+      input[type="number"]:focus {
+        outline: none;
+        border-color: #4fc3f7;
+        box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+      }
+      select {
+        width: 100%;
+        background: #111927;
+        border: 1px solid #2a3a52;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        outline: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234fc3f7' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 32px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+      }
+      .model-tab {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid #2a3a52;
+        background: transparent;
+        color: #6b7b96;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: "IBM Plex Sans", sans-serif;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        transition: all 0.15s ease;
+      }
+      .model-tab.active {
+        background: linear-gradient(135deg, #1a3050, #1e3a5f);
+        color: #4fc3f7;
+        border-color: #2a4060;
+      }
+      .model-tab:hover:not(.active) {
+        color: #8899b0;
+        border-color: #3a4a62;
+      }
+      button {
+        font-family: "IBM Plex Sans", sans-serif;
+      }
+
+      /* Loader */
+      .loader-wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0a0f1a;
+        z-index: 100;
+        transition: opacity 0.3s;
+      }
+      .loader-wrap.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loader {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #1e2a3e;
+        border-top-color: #4fc3f7;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loader" class="loader-wrap">
+      <div class="loader"></div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+      const { useState, useMemo } = React;
+
+      // ============================================================
+      // MODELO BASEADO NOS INSUMOS FORNECIDOS
+      // ============================================================
+      // 1. CEMIG / Rusck (docx 2025/2026): f_∞ tabelado por classe
+      //    - 6ª RTP CEMIG (2023-2027), ANEEL 2024/2025
+      // 2. Sargent et al. (1994): Df(Ng) com componente parabólica
+      //    e hiperbólica - 4 parâmetros por classe
+      // 3. Nazarko et al. (1998): Df ~ Normal; Cf indep. de Ng
+      // 4. Heydt (2023): Df típico ∈ [1.0, 8.0]
+      // ============================================================
+
+      const CLASSES_CEMIG = [
+        {
+          nome: "Residencial Social",
+          dMax: 4,
+          fInfMin: 0.08,
+          fInfMax: 0.11,
+          fInf: 0.095,
+          fu: 0.25,
+          sargent: { A1: 12.6, A2: 0.5, A3: 0.5, A4: 8.0 },
+          dfInf: 8.0,
+        },
+        {
+          nome: "Residencial Baixo",
+          dMax: 9,
+          fInfMin: 0.12,
+          fInfMax: 0.14,
+          fInf: 0.13,
+          fu: 0.3,
+          sargent: { A1: 9.2, A2: 0.5, A3: 0.5, A4: 6.2 },
+          dfInf: 7.69,
+        },
+        {
+          nome: "Residencial Médio",
+          dMax: 20,
+          fInfMin: 0.15,
+          fInfMax: 0.19,
+          fInf: 0.17,
+          fu: 0.38,
+          sargent: { A1: 7.06, A2: 0.5, A3: 0.5, A4: 4.7 },
+          dfInf: 5.88,
+        },
+        {
+          nome: "Residencial Alto",
+          dMax: 40,
+          fInfMin: 0.2,
+          fInfMax: 0.26,
+          fInf: 0.23,
+          fu: 0.5,
+          sargent: { A1: 5.22, A2: 0.5, A3: 0.5, A4: 3.48 },
+          dfInf: 4.35,
+        },
+        {
+          nome: "Comercial Geral",
+          dMax: 60,
+          fInfMin: 0.35,
+          fInfMax: 0.42,
+          fInf: 0.385,
+          fu: 0.6,
+          sargent: { A1: 3.12, A2: 0.5, A3: 0.5, A4: 2.08 },
+          dfInf: 2.6,
+        },
+        {
+          nome: "Comercial Climatizado",
+          dMax: 90,
+          fInfMin: 0.48,
+          fInfMax: 0.58,
+          fInf: 0.53,
+          fu: 0.7,
+          sargent: { A1: 2.26, A2: 0.5, A3: 0.5, A4: 1.51 },
+          dfInf: 1.89,
+        },
+        {
+          nome: "Industrial BT",
+          dMax: Infinity,
+          fInfMin: 0.65,
+          fInfMax: 0.8,
+          fInf: 0.725,
+          fu: 0.82,
+          sargent: { A1: 1.66, A2: 0.5, A3: 0.5, A4: 1.1 },
+          dfInf: 1.38,
+        },
+      ];
+
+      function classificarPorD(D) {
+        return (
+          CLASSES_CEMIG.find((c) => D <= c.dMax) ||
+          CLASSES_CEMIG[CLASSES_CEMIG.length - 1]
+        );
+      }
+
+      function fcRusck(n, fInf) {
+        const nEf = Math.min(Math.max(n, 1), 40);
+        return fInf + (1 - fInf) / Math.sqrt(nEf);
+      }
+
+      function dfSargent(n, params) {
+        const nEf = Math.min(Math.max(n, 1), 40);
+        const { A1, A2, A3, A4 } = params;
+        const parab = 0.5 * (A1 + (1 - A1) * Math.pow(nEf, -A2));
+        const hyper = 0.5 * ((A4 * (nEf - 1) - A3 + 1) / (nEf - A3));
+        return Math.max(parab + hyper, 1.0);
+      }
+      function fcSargent(n, params) {
+        return 1 / dfSargent(n, params);
+      }
+
+      function calcDD(D, nExistentes, modelo, classeIdx) {
+        const classe =
+          classeIdx === -1 ? classificarPorD(D) : CLASSES_CEMIG[classeIdx];
+        const nTotal = Math.min(nExistentes + 1, 40);
+        const fc =
+          modelo === "rusck"
+            ? fcRusck(nTotal, classe.fInf)
+            : fcSargent(nTotal, classe.sargent);
+        const df = 1 / fc;
+        const DD = D * classe.fu * fc;
+        return { DD: Math.max(DD, 0), classe, fc, df, fu: classe.fu, nTotal };
+      }
+
+      function copyToClipboard(text) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+      }
+
+      function App() {
+        const [D, setD] = useState(10.8);
+        const [n, setN] = useState(55);
+        const [modelo, setModelo] = useState("rusck");
+        const [classeIdx, setClasseIdx] = useState(-1);
+        const [showTabela, setShowTabela] = useState(false);
+        const [showFormula, setShowFormula] = useState(false);
+        const [copied, setCopied] = useState(false);
+
+        const resultado = useMemo(
+          () => calcDD(D, n, modelo, classeIdx),
+          [D, n, modelo, classeIdx],
+        );
+
+        const handleCopyResult = () => {
+          const text = `Demanda Diversificada Incremental
+Modelo: ${modelo === "rusck" ? "Rusck" : "Sargent / Heydt"}
+Classe: ${resultado.classe.nome}${classeIdx === -1 ? " (auto)" : " (manual)"}
+D (kVA): ${D}
+Clientes existentes: ${n}
+n total: ${resultado.nTotal}
+FU: ${resultado.fu.toFixed(4)}
+fc(n): ${resultado.fc.toFixed(4)}
+Df(n): ${resultado.df.toFixed(4)}
+DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
+          copyToClipboard(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1800);
+        };
+
+        return (
+          <div style={{ padding: "24px 16px" }}>
+            <div style={{ maxWidth: 780, margin: "0 auto" }}>
+              {/* Header */}
+              <div
+                style={{
+                  marginBottom: 24,
+                  borderBottom: "1px solid #1e2a3e",
+                  paddingBottom: 20,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 4,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <h1
+                      style={{
+                        fontSize: 22,
+                        fontWeight: 600,
+                        color: "#4fc3f7",
+                        margin: 0,
+                        letterSpacing: "-0.3px",
+                      }}
+                    >
+                      Demanda Diversificada Incremental
+                    </h1>
+                    <span
+                      className="badge"
+                      style={{
+                        background: "#1a3050",
+                        color: "#7fb8e8",
+                        border: "1px solid #2a4060",
+                      }}
+                    >
+                      Teste · v0.3
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13, color: "#6b7b96", margin: 0 }}>
+                    Rusck · Sargent (1994) · Heydt (2023)
+                  </p>
+                </div>
+                <button
+                  onClick={handleCopyResult}
+                  style={{
+                    background: copied ? "#1a3050" : "transparent",
+                    border: "1px solid " + (copied ? "#4fc3f7" : "#2a3a52"),
+                    color: copied ? "#4fc3f7" : "#8899b0",
+                    padding: "8px 14px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 11,
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                    transition: "all 0.15s",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {copied ? "✓ Copiado" : "Copiar resultado"}
+                </button>
+              </div>
+
+              {/* Seletor de modelo */}
+              <div style={{ marginBottom: 18 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#8899b0",
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: 8,
+                  }}
+                >
+                  Modelo de coincidência
+                </div>
+                <div style={{ display: "flex", gap: 0 }}>
+                  <button
+                    className={
+                      "model-tab " + (modelo === "rusck" ? "active" : "")
+                    }
+                    onClick={() => setModelo("rusck")}
+                    style={{ borderRadius: "6px 0 0 6px", borderRight: "none" }}
+                  >
+                    Rusck
+                  </button>
+                  <button
+                    className={
+                      "model-tab " + (modelo === "sargent" ? "active" : "")
+                    }
+                    onClick={() => setModelo("sargent")}
+                    style={{ borderRadius: "0 6px 6px 0" }}
+                  >
+                    Sargent / Heydt
+                  </button>
+                </div>
+              </div>
+
+              {/* Seletor de classe */}
+              <div style={{ marginBottom: 22 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#8899b0",
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: 8,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>Classe do consumidor</span>
+                  {classeIdx !== -1 && (
+                    <button
+                      onClick={() => setClasseIdx(-1)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#4fc3f7",
+                        cursor: "pointer",
+                        fontSize: 10,
+                        padding: 0,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      ← Voltar ao auto
+                    </button>
+                  )}
+                </div>
+                <select
+                  value={classeIdx}
+                  onChange={(e) => setClasseIdx(parseInt(e.target.value))}
+                  style={{ color: classeIdx === -1 ? "#8899b0" : "#e0e6f0" }}
+                >
+                  <option value={-1}>Automático (inferido por D)</option>
+                  {CLASSES_CEMIG.map((c, i) => (
+                    <option key={i} value={i}>
+                      {c.nome} (D ≤ {c.dMax === Infinity ? "∞" : c.dMax} kVA, f∞
+                      = {c.fInf.toFixed(3)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Inputs */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 20,
+                  marginBottom: 24,
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: "#8899b0",
+                      fontWeight: 500,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      display: "block",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Nova carga D (kVA)
+                  </label>
+                  <input
+                    type="number"
+                    value={D}
+                    onChange={(e) =>
+                      setD(Math.max(0, parseFloat(e.target.value) || 0))
+                    }
+                    step={0.1}
+                    min={0}
+                  />
+                  <input
+                    type="range"
+                    value={D}
+                    onChange={(e) => setD(parseFloat(e.target.value))}
+                    min={0}
+                    max={200}
+                    step={0.5}
+                    style={{ marginTop: 10 }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: "#8899b0",
+                      fontWeight: 500,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      display: "block",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Clientes existentes
+                  </label>
+                  <input
+                    type="number"
+                    value={n}
+                    onChange={(e) =>
+                      setN(Math.max(0, parseInt(e.target.value) || 0))
+                    }
+                    step={1}
+                    min={0}
+                  />
+                  <input
+                    type="range"
+                    value={Math.min(n, 80)}
+                    onChange={(e) => setN(parseInt(e.target.value))}
+                    min={0}
+                    max={80}
+                    step={1}
+                    style={{ marginTop: 10 }}
+                  />
+                </div>
+              </div>
+
+              {/* Resultado */}
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #0d1b2a, #132238)",
+                  border: "1px solid #1e3a5f",
+                  borderRadius: 12,
+                  padding: 22,
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ textAlign: "center", marginBottom: 14 }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#6b7b96",
+                      textTransform: "uppercase",
+                      letterSpacing: "1px",
+                      marginBottom: 4,
+                    }}
+                  >
+                    DD Incremental
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 44,
+                      fontWeight: 700,
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      color: "#4fc3f7",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {resultado.DD.toFixed(2)}
+                    <span
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 400,
+                        color: "#6b9cc4",
+                        marginLeft: 4,
+                      }}
+                    >
+                      kVA
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#8899b0",
+                    textAlign: "center",
+                    marginTop: 8,
+                    padding: "8px 12px",
+                    background: "#0a1421",
+                    borderRadius: 8,
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}
+                >
+                  {classeIdx === -1 ? "Classe inferida" : "Classe selecionada"}:{" "}
+                  <span style={{ color: "#81c784", fontWeight: 600 }}>
+                    {resultado.classe.nome}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: 8,
+                    marginTop: 14,
+                    paddingTop: 14,
+                    borderTop: "1px solid #1a2d45",
+                  }}
+                >
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "#5a6d85",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {modelo === "rusck" ? "f∞" : "Df∞"}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        color: "#81c784",
+                      }}
+                    >
+                      {modelo === "rusck"
+                        ? resultado.classe.fInf.toFixed(3)
+                        : resultado.classe.dfInf.toFixed(2)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "#5a6d85",
+                        marginBottom: 4,
+                      }}
+                    >
+                      FU
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        color: "#ffb74d",
+                      }}
+                    >
+                      {resultado.fu.toFixed(3)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "#5a6d85",
+                        marginBottom: 4,
+                      }}
+                    >
+                      Df(n)
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        color: "#ce93d8",
+                      }}
+                    >
+                      {resultado.df.toFixed(3)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "#5a6d85",
+                        marginBottom: 4,
+                      }}
+                    >
+                      fc(n)
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        color: "#ce93d8",
+                      }}
+                    >
+                      {resultado.fc.toFixed(4)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "#5a6d85",
+                        marginBottom: 4,
+                      }}
+                    >
+                      n total
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        color: "#90a4ae",
+                      }}
+                    >
+                      {resultado.nTotal}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div
+                style={{
+                  marginBottom: 16,
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  onClick={() => setShowTabela(!showTabela)}
+                  style={{
+                    background: showTabela ? "#1a2540" : "transparent",
+                    border: "1px solid #2a3a52",
+                    color: "#8899b0",
+                    padding: "8px 14px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  {showTabela ? "▾" : "▸"} Tabela de classes
+                </button>
+                <button
+                  onClick={() => setShowFormula(!showFormula)}
+                  style={{
+                    background: showFormula ? "#1a2540" : "transparent",
+                    border: "1px solid #2a3a52",
+                    color: "#8899b0",
+                    padding: "8px 14px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  {showFormula ? "▾" : "▸"} Fórmulas
+                </button>
+              </div>
+
+              {showTabela && (
+                <div
+                  style={{
+                    background: "#0d1520",
+                    border: "1px solid #1e2a3e",
+                    borderRadius: 10,
+                    padding: 16,
+                    marginBottom: 16,
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: 13,
+                      color: "#8899b0",
+                      margin: "0 0 4px 0",
+                      fontWeight: 500,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Classes CEMIG 6ª RTP
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: 11,
+                      color: "#5a6d85",
+                      margin: "0 0 12px 0",
+                    }}
+                  >
+                    Mapeamento D contratada (kVA) → classe + parâmetros do
+                    modelo selecionado.
+                  </p>
+                  <div style={{ overflowX: "auto" }}>
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        fontSize: 12,
+                      }}
+                    >
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid #1e2a3e" }}>
+                          {(modelo === "rusck"
+                            ? ["Classe", "D ≤", "f∞ (faixa)", "f∞", "FU"]
+                            : [
+                                "Classe",
+                                "D ≤",
+                                "A₁",
+                                "A₂",
+                                "A₃",
+                                "A₄",
+                                "Df∞",
+                                "FU",
+                              ]
+                          ).map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                padding: "6px 4px",
+                                textAlign: "left",
+                                color: "#5a6d85",
+                                fontWeight: 500,
+                                fontSize: 10,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {CLASSES_CEMIG.map((c, i) => (
+                          <tr
+                            key={i}
+                            style={{
+                              borderBottom: "1px solid #141e2e",
+                              background:
+                                resultado.classe.nome === c.nome
+                                  ? "#1a2540"
+                                  : "transparent",
+                            }}
+                          >
+                            <td
+                              style={{
+                                padding: "6px 4px",
+                                color: "#e0e6f0",
+                                fontSize: 11,
+                              }}
+                            >
+                              {c.nome}
+                            </td>
+                            <td
+                              style={{
+                                padding: "6px 4px",
+                                fontFamily: "'IBM Plex Mono', monospace",
+                                color: "#90a4ae",
+                              }}
+                            >
+                              {c.dMax === Infinity ? "∞" : c.dMax}
+                            </td>
+                            {modelo === "rusck" ? (
+                              <>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#81c784",
+                                    fontSize: 11,
+                                  }}
+                                >
+                                  {c.fInfMin}–{c.fInfMax}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#81c784",
+                                  }}
+                                >
+                                  {c.fInf.toFixed(3)}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#ffb74d",
+                                  }}
+                                >
+                                  {c.fu.toFixed(2)}
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#81c784",
+                                  }}
+                                >
+                                  {c.sargent.A1.toFixed(2)}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#81c784",
+                                  }}
+                                >
+                                  {c.sargent.A2.toFixed(2)}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#81c784",
+                                  }}
+                                >
+                                  {c.sargent.A3.toFixed(2)}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#81c784",
+                                  }}
+                                >
+                                  {c.sargent.A4.toFixed(2)}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#ce93d8",
+                                  }}
+                                >
+                                  {c.dfInf.toFixed(2)}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "6px 4px",
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    color: "#ffb74d",
+                                  }}
+                                >
+                                  {c.fu.toFixed(2)}
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {showFormula && (
+                <div
+                  style={{
+                    background: "#0d1520",
+                    border: "1px solid #1e2a3e",
+                    borderRadius: 10,
+                    padding: 16,
+                    marginBottom: 16,
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: 13,
+                      color: "#8899b0",
+                      margin: "0 0 8px 0",
+                      fontWeight: 500,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Fórmulas — modelo{" "}
+                    {modelo === "rusck" ? "Rusck" : "Sargent / Heydt"}
+                  </h3>
+                  <div
+                    style={{
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: 12,
+                      color: "#90a4ae",
+                      lineHeight: 1.9,
+                    }}
+                  >
+                    <div style={{ color: "#4fc3f7", marginBottom: 8 }}>
+                      DD = D × FU(classe) × fc(n_total)
+                    </div>
+                    <div>n_total = min(n_existentes + 1, 40)</div>
+                    {modelo === "rusck" ? (
+                      <div style={{ marginTop: 8, color: "#81c784" }}>
+                        fc(n) = f∞ + (1 − f∞) / √n
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ marginTop: 8, color: "#81c784" }}>
+                          Df(n) = ½[A₁ + (1−A₁)·n<sup>−A₂</sup>] + ½[(A₄(n−1) −
+                          A₃ + 1) / (n − A₃)]
+                        </div>
+                        <div style={{ color: "#81c784" }}>
+                          fc(n) = 1 / Df(n)
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 8,
+                            color: "#6b7b96",
+                            fontSize: 11,
+                          }}
+                        >
+                          Em n=1: Df=1 (sem diversidade). Df(∞) = (A₁ + A₄) / 2,
+                          limitado a 8.0 conforme Heydt (2023). Parâmetros
+                          A₁..A₄ por classe seguem Sargent (1994).
+                        </div>
+                      </>
+                    )}
+                    <div
+                      style={{ marginTop: 10, color: "#6b7b96", fontSize: 11 }}
+                    >
+                      FU e parâmetros de coincidência tabelados por classe
+                      (CEMIG 6ª RTP). Classe inferida da magnitude de D
+                      contratada em kVA quando em modo automático.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "#e0e6f0",
+                  marginTop: 16,
+                  textAlign: "center",
+                }}
+              >
+                CEMIG 6ª RTP · ANEEL 2024/2025 · Sargent et al. (1994) · Heydt
+                (2023) · Nazarko (1998)
+                <br />
+                <span style={{ fontSize: 10, color: "#e0e6f0" }}>
+                  Distribuição interna para validação técnica — não usar em
+                  projeto definitivo.
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+
+      // Hide loader after first render
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          document.getElementById("loader").classList.add("hidden");
+        }, 100);
+      });
+    </script>
+  </body>
+</html>
