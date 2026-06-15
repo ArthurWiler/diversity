@@ -712,6 +712,264 @@
         return { DD: Math.max(DD, 0), classe, fc, df, fu: classe.fu, nTotal };
       }
 
+      // DD para uma classe FIXA (usada no gráfico de varredura de D)
+      function calcDDFixed(D, nExistentes, modelo, classe) {
+        const nTotal = Math.min(nExistentes + 1, 40);
+        const fc =
+          modelo === "rusck"
+            ? fcRusck(nTotal, classe.fInf)
+            : fcSargent(nTotal, classe.sargent);
+        return Math.max(D * classe.fu * fc, 0);
+      }
+
+      // ============================================================
+      // GRÁFICO DD × nova carga D (n fixo, classificação automática) — SVG puro
+      // Curva única e fixa: cada D usa a classe correspondente (com degraus
+      // nas fronteiras). O valor selecionado apenas move o marcador.
+      // ============================================================
+      function GraficoDD({ n, modelo, dAtual }) {
+        const DMAX = 800;
+        const STEP = 1;
+        const W = 720,
+          H = 300;
+        const padL = 56,
+          padR = 18,
+          padT = 18,
+          padB = 38;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+
+        // Fronteiras de classe (dMax finitos) — onde ocorrem as descontinuidades
+        const fronteiras = CLASSES_CEMIG.map((c) => c.dMax).filter(
+          (d) => isFinite(d) && d < DMAX,
+        );
+
+        // Gera segmentos contínuos por classe; quebra a linha nas fronteiras
+        const segments = useMemo(() => {
+          const segs = [];
+          let cur = [];
+          let lastClasse = null;
+          for (let d = 0; d <= DMAX + 1e-9; d += STEP) {
+            const classe = classificarPorD(d);
+            if (lastClasse && classe !== lastClasse) {
+              segs.push(cur);
+              cur = [];
+            }
+            cur.push({ d, dd: calcDDFixed(d, n, modelo, classe) });
+            lastClasse = classe;
+          }
+          if (cur.length) segs.push(cur);
+          return segs;
+        }, [n, modelo]);
+
+        const allPts = segments.flat();
+        const ddMax = Math.max(...allPts.map((p) => p.dd), 1e-6);
+        const yMax = Math.ceil(ddMax / 25) * 25 || 25;
+
+        const sx = (d) => padL + (d / DMAX) * plotW;
+        const sy = (v) => padT + plotH - (v / yMax) * plotH;
+
+        const segPath = (seg) =>
+          seg
+            .map(
+              (p, i) =>
+                `${i === 0 ? "M" : "L"}${sx(p.d).toFixed(1)},${sy(p.dd).toFixed(1)}`,
+            )
+            .join(" ");
+        const segArea = (seg) =>
+          `M${sx(seg[0].d).toFixed(1)},${sy(0)} ` +
+          seg
+            .map((p) => `L${sx(p.d).toFixed(1)},${sy(p.dd).toFixed(1)}`)
+            .join(" ") +
+          ` L${sx(seg[seg.length - 1].d).toFixed(1)},${sy(0)} Z`;
+
+        const xTicks = [0, 100, 200, 300, 400, 500, 600, 700, 800];
+        const nY = 5;
+        const yTicks = Array.from(
+          { length: nY + 1 },
+          (_, i) => (yMax / nY) * i,
+        );
+
+        const dClamp = Math.min(Math.max(dAtual, 0), DMAX);
+        const ddAtual = calcDDFixed(dClamp, n, modelo, classificarPorD(dClamp));
+
+        return (
+          <div
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              padding: 16,
+              marginBottom: 16,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 13,
+                color: "var(--text-3)",
+                margin: "0 0 4px 0",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              DD incremental × nova carga D
+            </h3>
+            <p
+              style={{
+                fontSize: 11,
+                color: "var(--text-4)",
+                margin: "0 0 12px 0",
+              }}
+            >
+              Classificação automática por D (com descontinuidades nas
+              fronteiras de classe), n = {n} existentes, modelo{" "}
+              {modelo === "rusck" ? "Rusck" : "Sargent/Heydt"}. Varredura de D
+              de 0 a {DMAX} kVA. O valor selecionado apenas move o marcador.
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <svg
+                viewBox={`0 0 ${W} ${H}`}
+                width="100%"
+                style={{ display: "block", minWidth: 480 }}
+              >
+                <defs>
+                  <linearGradient id="ddFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stopColor="var(--accent)"
+                      stopOpacity="0.28"
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--accent)"
+                      stopOpacity="0.02"
+                    />
+                  </linearGradient>
+                </defs>
+                {yTicks.map((v, i) => (
+                  <g key={"y" + i}>
+                    <line
+                      x1={padL}
+                      y1={sy(v)}
+                      x2={W - padR}
+                      y2={sy(v)}
+                      stroke="var(--border)"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={padL - 8}
+                      y={sy(v) + 3.5}
+                      textAnchor="end"
+                      fontSize="10"
+                      fontFamily="'IBM Plex Mono', monospace"
+                      fill="var(--text-4)"
+                    >
+                      {v.toFixed(0)}
+                    </text>
+                  </g>
+                ))}
+                {xTicks.map((d, i) => (
+                  <g key={"x" + i}>
+                    <line
+                      x1={sx(d)}
+                      y1={padT}
+                      x2={sx(d)}
+                      y2={padT + plotH}
+                      stroke="var(--border)"
+                      strokeWidth="1"
+                      strokeOpacity="0.5"
+                    />
+                    <text
+                      x={sx(d)}
+                      y={H - padB + 16}
+                      textAnchor="middle"
+                      fontSize="10"
+                      fontFamily="'IBM Plex Mono', monospace"
+                      fill="var(--text-4)"
+                    >
+                      {d}
+                    </text>
+                  </g>
+                ))}
+                {/* fronteiras de classe (linhas verticais finas) */}
+                {fronteiras.map((d, i) => (
+                  <line
+                    key={"fr" + i}
+                    x1={sx(d)}
+                    y1={padT}
+                    x2={sx(d)}
+                    y2={padT + plotH}
+                    stroke="var(--border-2)"
+                    strokeWidth="1"
+                    strokeDasharray="2 4"
+                  />
+                ))}
+                {segments.map((seg, i) => (
+                  <path key={"a" + i} d={segArea(seg)} fill="url(#ddFill)" />
+                ))}
+                {segments.map((seg, i) => (
+                  <path
+                    key={"l" + i}
+                    d={segPath(seg)}
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                ))}
+                {/* marcador do D atual */}
+                <line
+                  x1={sx(dClamp)}
+                  y1={padT}
+                  x2={sx(dClamp)}
+                  y2={padT + plotH}
+                  stroke="var(--accent-3)"
+                  strokeWidth="1"
+                  strokeDasharray="4 3"
+                />
+                <circle
+                  cx={sx(dClamp)}
+                  cy={sy(ddAtual)}
+                  r="4"
+                  fill="var(--accent-3)"
+                />
+                <text
+                  x={sx(dClamp)}
+                  y={sy(ddAtual) - 9}
+                  textAnchor="middle"
+                  fontSize="10.5"
+                  fontFamily="'IBM Plex Mono', monospace"
+                  fill="var(--accent-3)"
+                >
+                  {ddAtual.toFixed(2)} kVA
+                </text>
+                {/* rótulos eixos */}
+                <text
+                  x={padL + plotW / 2}
+                  y={H - 4}
+                  textAnchor="middle"
+                  fontSize="10.5"
+                  fill="var(--text-3)"
+                >
+                  Nova carga D (kVA)
+                </text>
+                <text
+                  x={14}
+                  y={padT + plotH / 2}
+                  textAnchor="middle"
+                  fontSize="10.5"
+                  fill="var(--text-3)"
+                  transform={`rotate(-90 14 ${padT + plotH / 2})`}
+                >
+                  ΔD incremental (kVA)
+                </text>
+              </svg>
+            </div>
+          </div>
+        );
+      }
+
       function copyToClipboard(text) {
         if (navigator.clipboard) {
           navigator.clipboard.writeText(text);
@@ -735,6 +993,7 @@
         const [classeIdx, setClasseIdx] = useState(-1);
         const [showTabela, setShowTabela] = useState(false);
         const [showFormula, setShowFormula] = useState(false);
+        const [showGrafico, setShowGrafico] = useState(true);
         const [copied, setCopied] = useState(false);
 
         const resultado = useMemo(
@@ -954,8 +1213,8 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     value={D}
                     onChange={(e) => setD(parseFloat(e.target.value))}
                     min={0}
-                    max={200}
-                    step={0.5}
+                    max={800}
+                    step={0.1}
                     style={{ marginTop: 10 }}
                   />
                 </div>
@@ -1207,7 +1466,23 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 >
                   {showFormula ? "▾" : "▸"} Fórmulas
                 </button>
+                <button
+                  onClick={() => setShowGrafico(!showGrafico)}
+                  style={{
+                    background: showGrafico ? "#1a2540" : "transparent",
+                    border: "1px solid var(--border-2)",
+                    color: "var(--text-3)",
+                    padding: "8px 14px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  {showGrafico ? "▾" : "▸"} Gráfico DD × D
+                </button>
               </div>
+
+              {showGrafico && <GraficoDD n={n} modelo={modelo} dAtual={D} />}
 
               {showTabela && (
                 <div
