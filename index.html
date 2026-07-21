@@ -2394,14 +2394,6 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
       }
       const FAIXA_ORDER = ["0–30 kVA","> 30–45 kVA","> 45–75 kVA","> 75–112,5 kVA","> 112,5–150 kVA","> 150 kVA"];
 
-      function libDaPlanilha(resultado) {
-        const t = cmpNorm(resultado);
-        if (!t) return null;
-        if (t.includes("nao liberad") || t.includes("nao liberou")) return false;
-        if (t.includes("liberad") || t.includes("liberou")) return true;
-        return null;
-      }
-
       function cmpEnrich(row) {
         const D = row.cargaD != null ? row.cargaD : (row.demImpacto ?? 0);
         const r = calcImpacto(D, row.nClientes, "rusck");
@@ -2417,8 +2409,8 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
         const margemRusck = LIM * row.potTrafo - novaRusck;
         const margemSarg  = LIM * row.potTrafo - novaSarg;
 
-        const libPlan = libDaPlanilha(row.resultado);
-        const libAntigo = libPlan != null ? libPlan : (carregAntigo <= LIM);
+        // Critério único de liberação: carregamento ≤ 150% (para todos os cenários).
+        const libAntigo = carregAntigo <= LIM;
 
         return {
           ...row, D, classe: r.classe,
@@ -2426,7 +2418,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
           impRusck: r.DD, impSarg: s.DD,
           carregAntes, carregAntigo, carregRusck, carregSarg,
           margemRusck, margemSarg,
-          libPlan, libAntigo,
+          libAntigo,
           libRusck:  carregRusck  <= LIM,
           libSarg:   carregSarg   <= LIM,
           faixa: faixaPotencia(row.potTrafo),
@@ -2773,7 +2765,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   </div>
                   <div className="foot-note">
                     <b style={{color:"var(--st-crit)"}}>→ Obra</b> = casos que a base liberava e o novo método passa a exigir obra (Rusck / Sargent).
-                    <b style={{color:"var(--st-good)"}}> → Libera</b> = o contrário. Base = decisão da planilha ("Resultado simulação") quando presente, senão carregamento ≤ 150%.
+                    <b style={{color:"var(--st-good)"}}> → Libera</b> = o contrário. Base = carregamento atual ≤ 150% (critério único: (dem. instalada + demanda de impacto) / potência).
                   </div>
                 </div>
 

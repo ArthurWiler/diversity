@@ -276,16 +276,6 @@
       }
       const FAIXA_ORDER = ["0–30 kVA","> 30–45 kVA","> 45–75 kVA","> 75–112,5 kVA","> 112,5–150 kVA","> 150 kVA"];
 
-      // Decisão de liberação declarada na planilha (texto "Resultado simulação").
-      // true = liberado, false = não liberado, null = indefinido/sem texto.
-      function libDaPlanilha(resultado) {
-        const t = norm(resultado);
-        if (!t) return null;
-        if (t.includes("nao liberad") || t.includes("nao liberou")) return false;
-        if (t.includes("liberad") || t.includes("liberou")) return true;
-        return null;
-      }
-
       function enrich(row) {
         // D (nova carga bruta a diversificar) = coluna "D" da planilha.
         // Fallback para a demanda de impacto caso a coluna D não exista.
@@ -307,10 +297,8 @@
         const margemRusck = LIM * row.potTrafo - novaRusck;
         const margemSarg  = LIM * row.potTrafo - novaSarg;
 
-        // Baseline "era possível liberar": decisão real da planilha se houver;
-        // senão, cai para o critério de carregamento calculado.
-        const libPlan = libDaPlanilha(row.resultado);
-        const libAntigo = libPlan != null ? libPlan : (carregAntigo <= LIM);
+        // Critério único de liberação: carregamento ≤ 150% (para todos os cenários).
+        const libAntigo = carregAntigo <= LIM;
 
         return {
           ...row, D, classe: r.classe,
@@ -319,7 +307,6 @@
           carregAntes,
           carregAntigo, carregRusck, carregSarg,
           margemRusck, margemSarg,
-          libPlan,                    // decisão textual da planilha (ou null)
           libAntigo,                  // baseline usado nas transições
           libRusck:  carregRusck  <= LIM,
           libSarg:   carregSarg   <= LIM,
@@ -680,8 +667,8 @@
                   </div>
                   <div className="foot-note">
                     <b style={{color:"var(--st-crit)"}}>→ Obra</b> = casos que a base liberava e o novo método passa a exigir obra (Rusck / Sargent).
-                    <b style={{color:"var(--st-good)"}}> → Libera</b> = o contrário. Base = decisão da planilha (coluna "Resultado simulação")
-                    quando presente, senão carregamento ≤ 150%.
+                    <b style={{color:"var(--st-good)"}}> → Libera</b> = o contrário. Base = carregamento atual ≤ 150%
+                    (critério único: (dem. instalada + demanda de impacto) / potência).
                   </div>
                 </div>
 
@@ -742,7 +729,7 @@
                     Linhas com <span style={{color:"var(--st-crit)"}}>│</span> à esquerda = liberavam na base e passam a exigir obra
                     em algum método novo. Impacto Rusck/Sargent = DD = D · FU(classe) · fc(n), com <b>D = coluna "D"</b>,
                     n = clientes existentes + 1, classe inferida por D. Carregamento = (dem. instalada + impacto) / potência.
-                    <b> Lib. base</b> = decisão da planilha ("Resultado simulação") quando presente, senão carregamento ≤ 150%.
+                    <b> Lib. base</b> = carregamento atual ≤ 150%.
                   </div>
                 </div>
               </>
