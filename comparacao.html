@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comparação de Métodos — Demanda de Impacto | CEMIG</title>
+    <script src="./xlsx.full.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      :root {
+        --bg: #0a0f1a;
+        --bg-card: #0d1520;
+        --bg-card-2: #111927;
+        --border: #1e2a3e;
+        --border-2: #2a3a52;
+        --text: #e0e6f0;
+        --text-2: #b0bcd0;
+        --text-3: #8899b0;
+        --text-4: #5a6d85;
+        --text-5: #3a4a62;
+        --accent: #4fc3f7;
+        /* Séries categóricas (ordem fixa) — método antigo / Rusck / Sargent */
+        --s-antigo: #3987e5;   /* blue  — Demanda de impacto (planilha) */
+        --s-rusck:  #199e70;   /* aqua  — Rusck (CEMIG) */
+        --s-sarg:   #d95926;   /* orange— Sargent/Heydt */
+        /* Status (nunca reutilizados como série) */
+        --st-good: #0ca30c;
+        --st-warn: #fab219;
+        --st-crit: #d03b3b;
+        --grid: #1a2536;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        font-size: 14px;
+      }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 80px; }
+      h1 {
+        font-size: 24px; font-weight: 600; letter-spacing: -0.3px;
+        margin: 0 0 6px; color: var(--text);
+      }
+      .sub { color: var(--text-3); font-size: 13px; margin: 0 0 24px; }
+      .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+      .card {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 12px; padding: 20px; margin-bottom: 20px;
+      }
+      /* Dropzone */
+      .drop {
+        border: 1.5px dashed var(--border-2); border-radius: 12px;
+        padding: 40px 24px; text-align: center; cursor: pointer;
+        transition: all 0.15s; background: var(--bg-card);
+      }
+      .drop:hover, .drop.over { border-color: var(--accent); background: #0d1a28; }
+      .drop .big { font-size: 15px; color: var(--text-2); margin-bottom: 6px; }
+      .drop .small { font-size: 12px; color: var(--text-4); }
+      .btn {
+        display: inline-block; background: transparent;
+        border: 1px solid var(--border-2); color: var(--text-2);
+        padding: 8px 16px; border-radius: 8px; cursor: pointer;
+        font-size: 13px; font-family: inherit; transition: all 0.15s;
+      }
+      .btn:hover { border-color: var(--accent); color: var(--accent); }
+      .btn.primary { background: #14314f; border-color: #2a5a86; color: var(--accent); }
+      /* Legend */
+      .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 4px 0 18px; }
+      .lg { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-2); }
+      .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+      /* KPI tiles */
+      .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-bottom: 20px; }
+      .kpi { background: var(--bg-card-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+      .kpi .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-4); margin-bottom: 6px; }
+      .kpi .val { font-size: 26px; font-weight: 600; line-height: 1; }
+      .kpi .unit { font-size: 13px; color: var(--text-4); font-weight: 400; margin-left: 3px; }
+      .kpi .foot { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+      /* Tables */
+      .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
+      thead { background: #0a1421; }
+      th {
+        padding: 9px 11px; text-align: right; color: var(--text-4);
+        font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px;
+        border-bottom: 1px solid var(--border); position: sticky; top: 0; background: #0a1421;
+      }
+      th:first-child, td:first-child { text-align: left; }
+      td { padding: 8px 11px; text-align: right; color: var(--text-2); border-bottom: 1px solid #131d2c; }
+      tbody tr:last-child td { border-bottom: none; }
+      tbody tr:hover td { background: #0f1826; }
+      .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+      .pill.good { background: rgba(12,163,12,0.14); color: #6fd66f; }
+      .pill.crit { background: rgba(208,59,59,0.15); color: #f08a8a; }
+      .pill.warn { background: rgba(250,178,25,0.14); color: #f5c453; }
+      .delta-up { color: #f08a8a; }   /* aumentou carregamento = pior */
+      .delta-dn { color: #6fd66f; }   /* diminuiu = melhor/mais folga */
+      .delta-0  { color: var(--text-4); }
+      .sec-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-3); margin: 0 0 12px; font-weight: 600; }
+      .faixa-hd { font-size: 13px; color: var(--text); font-weight: 600; margin: 22px 0 10px; display: flex; align-items: center; gap: 10px; }
+      .faixa-hd .cnt { font-size: 11px; color: var(--text-4); font-weight: 400; }
+      .err { color: #f08a8a; font-size: 13px; margin-top: 10px; }
+      .muted { color: var(--text-4); font-size: 12px; }
+      .barrow { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; margin: 7px 0; }
+      .barlabel { font-size: 12px; color: var(--text-2); }
+      .bartrack { position: relative; height: 22px; }
+      .barfill { position: absolute; top: 0; height: 100%; border-radius: 3px; }
+      .barval { position: absolute; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text); padding-left: 6px; }
+      a.link { color: var(--accent); text-decoration: none; }
+      .foot-note { font-size: 11.5px; color: var(--text-4); margin-top: 8px; line-height: 1.6; }
+      .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+      select.sel {
+        background: var(--bg-card-2); border: 1px solid var(--border-2); color: var(--text);
+        padding: 7px 10px; border-radius: 8px; font-size: 12.5px; font-family: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+      const { useState, useMemo, useRef } = React;
+
+      // ============================================================
+      // MODELO — idêntico ao de index.html (Rusck + Sargent/Heydt)
+      // ============================================================
+      const CLASSES_CEMIG = [
+        { nome: "Residencial Social",     dMax: 4,        fInf: 0.095, fu: 0.25, sargent: { A1:12.6, A2:0.5, A3:0.5, A4:8.0 } },
+        { nome: "Residencial Baixo",      dMax: 9,        fInf: 0.130, fu: 0.30, sargent: { A1: 9.2, A2:0.5, A3:0.5, A4:6.2 } },
+        { nome: "Residencial Médio",      dMax: 20,       fInf: 0.170, fu: 0.38, sargent: { A1: 7.06,A2:0.5, A3:0.5, A4:4.7 } },
+        { nome: "Residencial Alto",       dMax: 40,       fInf: 0.230, fu: 0.50, sargent: { A1: 5.22,A2:0.5, A3:0.5, A4:3.48} },
+        { nome: "Comercial Geral",        dMax: 60,       fInf: 0.385, fu: 0.60, sargent: { A1: 3.12,A2:0.5, A3:0.5, A4:2.08} },
+        { nome: "Comercial Climatizado",  dMax: 90,       fInf: 0.530, fu: 0.70, sargent: { A1: 2.26,A2:0.5, A3:0.5, A4:1.51} },
+        { nome: "Industrial BT",          dMax: Infinity, fInf: 0.725, fu: 0.82, sargent: { A1: 1.66,A2:0.5, A3:0.5, A4:1.1 } },
+      ];
+      const classificarPorD = (D) =>
+        CLASSES_CEMIG.find((c) => D <= c.dMax) || CLASSES_CEMIG[CLASSES_CEMIG.length - 1];
+      const fcRusck = (n, fInf) => { const nEf = Math.min(Math.max(n,1),40); return fInf + (1-fInf)/Math.sqrt(nEf); };
+      function dfSargent(n, p) {
+        const nEf = Math.min(Math.max(n,1),40);
+        const { A1,A2,A3,A4 } = p;
+        const parab = 0.5*(A1 + (1-A1)*Math.pow(nEf,-A2));
+        const hyper = 0.5*((A4*(nEf-1) - A3 + 1)/(nEf - A3));
+        return Math.max(parab + hyper, 1.0);
+      }
+      const fcSargent = (n,p) => 1/dfSargent(n,p);
+
+      // Demanda diversificada incremental (nova demanda de impacto pelo método do projeto)
+      function calcImpacto(D, nExistentes, modelo) {
+        const classe = classificarPorD(D);
+        const nTotal = Math.min(nExistentes + 1, 40);
+        const fc = modelo === "rusck" ? fcRusck(nTotal, classe.fInf) : fcSargent(nTotal, classe.sargent);
+        return { DD: Math.max(D * classe.fu * fc, 0), classe: classe.nome, fc, nTotal };
+      }
+
+      const LIM = 1.5; // 150% de carregamento sobre a potência
+
+      // ============================================================
+      // LEITURA DA PLANILHA — mapeamento flexível de colunas
+      // ============================================================
+      const norm = (s) => (s == null ? "" : String(s))
+        .normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+      const toNum = (v) => {
+        if (v == null || v === "") return null;
+        if (typeof v === "number") return v;
+        let s = String(v).trim().replace(/%/g, "").replace(/kva/gi, "").trim();
+        // "1.234,56" (pt-BR) -> "1234.56"  |  "1,55" -> "1.55"
+        if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+        const n = parseFloat(s);
+        return isNaN(n) ? null : n;
+      };
+
+      // Aceita variações de cabeçalho para cada campo lógico.
+      // `exact: true` => só casa por igualdade (evita que um cabeçalho de 1 letra
+      // como "D" seja capturado por inclusão dentro de "Demanda...").
+      const COLDEFS = [
+        { key: "cargaD",     syn: ["d","carga d","d kva","nova carga","nova carga d"], exact: true },
+        { key: "nClientes",  syn: ["numero de clientes","n clientes","clientes","numero clientes","qtd clientes","n de clientes"] },
+        { key: "demInst",    syn: ["demanda instalada transformador","demanda instalada","demanda instalada do transformador","dem instalada"] },
+        { key: "potTrafo",   syn: ["potencia transformador","potencia do transformador","potencia trafo","potencia","kva trafo"] },
+        { key: "resultado",  syn: ["resultado simulacao","resultado da simulacao","resultado","simulacao"] },
+        { key: "motivo",     syn: ["motivo","observacao","obs"] },
+        { key: "demImpacto", syn: ["demanda de impacto","demanda impacto","dem impacto","impacto"] },
+        { key: "novaDemInst",syn: ["nova demanda instalada do transformador","nova demanda instalada","nova dem instalada"] },
+        { key: "carreg",     syn: ["carregamento","% carregamento","percentual carregamento"] },
+        { key: "novoCarreg", syn: ["novo carregamento","% novo carregamento","novo percentual carregamento","percentual novo carregamento"] },
+      ];
+
+      function mapColumns(headerRow) {
+        const H = headerRow.map(norm);
+        const map = {};
+        const usados = new Set(); // uma coluna não é atribuída a dois campos
+        // Ordena: campos `exact` primeiro, para reservarem sua coluna antes do match por inclusão
+        const ordem = [...COLDEFS].sort((a,b)=> (b.exact?1:0)-(a.exact?1:0));
+        for (const def of ordem) {
+          let idx = -1;
+          // 1) match exato
+          for (const s of def.syn) { const i = H.indexOf(norm(s)); if (i !== -1 && !usados.has(i)) { idx = i; break; } }
+          // 2) match por inclusão — apenas para campos não-exatos
+          if (idx === -1 && !def.exact) {
+            for (const s of def.syn) {
+              const ns = norm(s);
+              const i = H.findIndex((h,k) => h && !usados.has(k) && (h.includes(ns) || ns.includes(h)) && h.length > 2);
+              if (i !== -1) { idx = i; break; }
+            }
+          }
+          if (idx !== -1) usados.add(idx);
+          map[def.key] = idx;
+        }
+        return map;
+      }
+
+      function parseWorkbook(data) {
+        const wb = XLSX.read(data, { type: "array" });
+        // escolhe a aba com mais linhas que pareça conter os dados
+        let best = null;
+        for (const name of wb.SheetNames) {
+          const ws = wb.Sheets[name];
+          const arr = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: null });
+          if (!arr.length) continue;
+          // acha a linha de cabeçalho (a que casa com mais colunas conhecidas)
+          let hdrIdx = -1, hdrScore = -1, hdrMap = null;
+          const scan = Math.min(arr.length, 15);
+          for (let r = 0; r < scan; r++) {
+            const m = mapColumns(arr[r] || []);
+            const score = Object.values(m).filter((i) => i !== -1).length;
+            if (score > hdrScore) { hdrScore = score; hdrIdx = r; hdrMap = m; }
+          }
+          if (hdrScore > (best?.hdrScore ?? -1)) best = { name, arr, hdrIdx, hdrScore, hdrMap };
+        }
+        if (!best || best.hdrScore < 3) {
+          throw new Error("Não encontrei as colunas esperadas (Número de clientes, Potência transformador, Demanda de impacto, etc.). Confira o cabeçalho da planilha.");
+        }
+        const { arr, hdrIdx, hdrMap } = best;
+        const rows = [];
+        for (let r = hdrIdx + 1; r < arr.length; r++) {
+          const raw = arr[r];
+          if (!raw || raw.every((c) => c == null || c === "")) continue;
+          const get = (k) => (hdrMap[k] !== -1 ? raw[hdrMap[k]] : null);
+          const cargaD     = toNum(get("cargaD"));
+          const nClientes  = toNum(get("nClientes"));
+          const demInst    = toNum(get("demInst"));
+          const potTrafo   = toNum(get("potTrafo"));
+          const demImpacto = toNum(get("demImpacto"));
+          // linha só é válida se tiver potência e demanda instalada (base do cálculo)
+          if (potTrafo == null || demInst == null) continue;
+          rows.push({
+            cargaD,
+            nClientes: nClientes ?? 0,
+            demInst, potTrafo, demImpacto,
+            resultado: get("resultado"),
+            motivo: get("motivo"),
+            novaDemInst: toNum(get("novaDemInst")),
+            carreg: toNum(get("carreg")),
+            novoCarreg: toNum(get("novoCarreg")),
+          });
+        }
+        return { sheet: best.name, cols: hdrMap, rows, headerRow: arr[hdrIdx] };
+      }
+
+      // ============================================================
+      // ENRIQUECIMENTO — calcula os métodos novos por linha
+      // ============================================================
+      function faixaPotencia(p) {
+        if (p <= 30)  return "0–30 kVA";
+        if (p <= 45)  return "> 30–45 kVA";
+        if (p <= 75)  return "> 45–75 kVA";
+        if (p <= 112.5) return "> 75–112,5 kVA";
+        if (p <= 150) return "> 112,5–150 kVA";
+        return "> 150 kVA";
+      }
+      const FAIXA_ORDER = ["0–30 kVA","> 30–45 kVA","> 45–75 kVA","> 75–112,5 kVA","> 112,5–150 kVA","> 150 kVA"];
+
+      // Decisão de liberação declarada na planilha (texto "Resultado simulação").
+      // true = liberado, false = não liberado, null = indefinido/sem texto.
+      function libDaPlanilha(resultado) {
+        const t = norm(resultado);
+        if (!t) return null;
+        if (t.includes("nao liberad") || t.includes("nao liberou")) return false;
+        if (t.includes("liberad") || t.includes("liberou")) return true;
+        return null;
+      }
+
+      function enrich(row) {
+        // D (nova carga bruta a diversificar) = coluna "D" da planilha.
+        // Fallback para a demanda de impacto caso a coluna D não exista.
+        const D = row.cargaD != null ? row.cargaD : (row.demImpacto ?? 0);
+        const r = calcImpacto(D, row.nClientes, "rusck");
+        const s = calcImpacto(D, row.nClientes, "sargent");
+
+        const carregAntes = row.demInst / row.potTrafo; // fração
+        // método antigo: soma direta da demanda de impacto
+        const novaAntigo   = row.demInst + (row.demImpacto ?? 0);
+        const carregAntigo = novaAntigo / row.potTrafo;
+        // métodos novos: soma da DD diversificada
+        const novaRusck    = row.demInst + r.DD;
+        const carregRusck  = novaRusck / row.potTrafo;
+        const novaSarg     = row.demInst + s.DD;
+        const carregSarg   = novaSarg / row.potTrafo;
+
+        // margem até o limite (kVA de folga antes de 150% da potência)
+        const margemRusck = LIM * row.potTrafo - novaRusck;
+        const margemSarg  = LIM * row.potTrafo - novaSarg;
+
+        // Baseline "era possível liberar": decisão real da planilha se houver;
+        // senão, cai para o critério de carregamento calculado.
+        const libPlan = libDaPlanilha(row.resultado);
+        const libAntigo = libPlan != null ? libPlan : (carregAntigo <= LIM);
+
+        return {
+          ...row, D, classe: r.classe,
+          impAntigo: row.demImpacto,
+          impRusck: r.DD, impSarg: s.DD,
+          carregAntes,
+          carregAntigo, carregRusck, carregSarg,
+          margemRusck, margemSarg,
+          libPlan,                    // decisão textual da planilha (ou null)
+          libAntigo,                  // baseline usado nas transições
+          libRusck:  carregRusck  <= LIM,
+          libSarg:   carregSarg   <= LIM,
+          faixa: faixaPotencia(row.potTrafo),
+        };
+      }
+
+      // ============================================================
+      // COMPONENTES DE UI
+      // ============================================================
+      const fmt = (v, d=2) => (v==null || isNaN(v)) ? "—" : v.toLocaleString("pt-BR",{minimumFractionDigits:d, maximumFractionDigits:d});
+      const pct = (v, d=1) => (v==null || isNaN(v)) ? "—" : (v*100).toLocaleString("pt-BR",{minimumFractionDigits:d, maximumFractionDigits:d})+"%";
+
+      function DeltaCell({ base, novo }) {
+        if (base == null || novo == null || base === 0) return <span className="delta-0">—</span>;
+        const d = (novo - base) / base;
+        const cls = d > 0.0005 ? "delta-up" : d < -0.0005 ? "delta-dn" : "delta-0";
+        const sign = d > 0 ? "+" : "";
+        return <span className={cls + " mono"}>{sign}{(d*100).toLocaleString("pt-BR",{maximumFractionDigits:1})}%</span>;
+      }
+
+      function LibPill({ ok }) {
+        return ok
+          ? <span className="pill good">✓ Liberado</span>
+          : <span className="pill crit">✕ Obra</span>;
+      }
+
+      function Legend() {
+        return (
+          <div className="legend">
+            <span className="lg"><span className="sw" style={{background:"var(--s-antigo)"}}></span>Demanda de impacto (planilha / método atual)</span>
+            <span className="lg"><span className="sw" style={{background:"var(--s-rusck)"}}></span>Rusck (CEMIG)</span>
+            <span className="lg"><span className="sw" style={{background:"var(--s-sarg)"}}></span>Sargent / Heydt</span>
+          </div>
+        );
+      }
+
+      // Barras de carregamento por faixa (média) com linha de limite 150%
+      function FaixaBars({ nome, rows }) {
+        const avg = (sel) => rows.reduce((a,r)=>a+sel(r),0)/rows.length;
+        const cAntes  = avg(r=>r.carregAntes);
+        const cAntigo = avg(r=>r.carregAntigo);
+        const cRusck  = avg(r=>r.carregRusck);
+        const cSarg   = avg(r=>r.carregSarg);
+        const maxV = Math.max(cAntes,cAntigo,cRusck,cSarg,LIM) * 1.05;
+        const W = (v) => Math.min(100, (v/maxV)*100);
+        const limX = (LIM/maxV)*100;
+        const Bar = ({label,val,color}) => (
+          <div className="barrow">
+            <div className="barlabel">{label}</div>
+            <div className="bartrack">
+              <div className="barfill" style={{width:W(val)+"%", background:color, opacity: val>LIM?1:0.85}}></div>
+              <div className="barval mono" style={{left:W(val)+"%"}}>{pct(val,1)}</div>
+            </div>
+          </div>
+        );
+        return (
+          <div className="card" style={{position:"relative"}}>
+            <div className="faixa-hd">{nome} <span className="cnt">· {rows.length} caso{rows.length>1?"s":""} · carregamento médio</span></div>
+            <div style={{position:"relative"}}>
+              {/* linha do limite 150% */}
+              <div style={{position:"absolute", left:"calc(130px + 12px + "+limX+"% * (100% - 142px)/100%)", top:0, bottom:0, width:0, borderLeft:"1px dashed var(--st-crit)", zIndex:2}}></div>
+              <Bar label="Antes (base)"       val={cAntes}  color="var(--text-4)" />
+              <Bar label="Método atual"        val={cAntigo} color="var(--s-antigo)" />
+              <Bar label="Rusck"               val={cRusck}  color="var(--s-rusck)" />
+              <Bar label="Sargent/Heydt"       val={cSarg}   color="var(--s-sarg)" />
+            </div>
+            <div className="foot-note"><span style={{color:"var(--st-crit)"}}>┊</span> limite de liberação = 150% de carregamento</div>
+          </div>
+        );
+      }
+
+      function App() {
+        const [state, setState] = useState(null); // {sheet, rows, cols}
+        const [err, setErr] = useState(null);
+        const [over, setOver] = useState(false);
+        const [faixaFiltro, setFaixaFiltro] = useState("__todas__");
+        const [soRegr, setSoRegr] = useState(false); // detalhe: só regressões (lib→obra)
+        const fileRef = useRef(null);
+
+        const handleFile = (file) => {
+          setErr(null);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const parsed = parseWorkbook(new Uint8Array(e.target.result));
+              if (!parsed.rows.length) { setErr("Arquivo lido, mas nenhuma linha de dados válida foi encontrada."); return; }
+              setState({ ...parsed, enriched: parsed.rows.map(enrich) });
+            } catch (ex) { setErr(ex.message || String(ex)); }
+          };
+          reader.onerror = () => setErr("Falha ao ler o arquivo.");
+          reader.readAsArrayBuffer(file);
+        };
+
+        const onDrop = (e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); };
+
+        // ---- agregações ----
+        const data = state?.enriched || [];
+        const faixasPresentes = FAIXA_ORDER.filter(f => data.some(r=>r.faixa===f));
+        const visiveis = faixaFiltro==="__todas__" ? data : data.filter(r=>r.faixa===faixaFiltro);
+
+        // KPIs seguem o filtro de faixa (base = registros visíveis)
+        const kpis = useMemo(() => {
+          const base = visiveis;
+          if (!base.length) return null;
+          // transições de decisão vs baseline (era possível liberar)
+          const gain = (k) => base.filter(r=>!r.libAntigo &&  r[k]).length; // exigia obra → libera
+          const regr = (k) => base.filter(r=> r.libAntigo && !r[k]).length; // era possível → exige obra
+          const avg  = (sel) => base.reduce((a,r)=>a+sel(r),0)/base.length;
+          const median = (sel) => {
+            const v = base.map(sel).filter(x=>x!=null && !isNaN(x)).sort((a,b)=>a-b);
+            if (!v.length) return null;
+            const m = Math.floor(v.length/2);
+            return v.length%2 ? v[m] : (v[m-1]+v[m])/2;
+          };
+          return {
+            n: base.length,
+            // decisão-base (era possível liberar)
+            liberadosA: base.filter(r=>r.libAntigo).length,
+            liberadosR: base.filter(r=>r.libRusck).length,
+            liberadosS: base.filter(r=>r.libSarg).length,
+            // REGRESSÕES: liberava e passou a exigir obra
+            regrR: regr("libRusck"), regrS: regr("libSarg"),
+            // ganhos: exigia obra e passou a liberar
+            gainR: gain("libRusck"), gainS: gain("libSarg"),
+            // divergência de decisão entre os dois métodos novos
+            divergentes: base.filter(r=>r.libRusck !== r.libSarg).length,
+            // casos-limite: passam a ficar apertados (>120% e ≤150%) no pior método novo
+            apertadosR: base.filter(r=>r.carregRusck>1.2 && r.carregRusck<=LIM).length,
+            apertadosS: base.filter(r=>r.carregSarg >1.2 && r.carregSarg <=LIM).length,
+            // estouram o limite no método novo (>150%)
+            estouramR: base.filter(r=>r.carregRusck>LIM).length,
+            estouramS: base.filter(r=>r.carregSarg >LIM).length,
+            // carregamento novo médio/mediana (pior método = Rusck, tende a diversificar menos)
+            carRmed: avg(r=>r.carregRusck), carSmed: avg(r=>r.carregSarg),
+            carRmediana: median(r=>r.carregRusck),
+            // menor folga (margem mínima até 150%) no método Rusck
+            folgaMinR: Math.min(...base.map(r=>r.margemRusck)),
+            // divergência média entre carregamento novo e o da planilha
+            deltaCarrRmed: avg(r=>r.carregRusck - r.carregAntigo),
+            deltaCarrSmed: avg(r=>r.carregSarg  - r.carregAntigo),
+          };
+        }, [visiveis]);
+
+        // ---- resumo por faixa (foco em decisão e carregamento) ----
+        const porFaixa = useMemo(() => {
+          return faixasPresentes.map(f => {
+            const rs = data.filter(r=>r.faixa===f);
+            const cnt = (fn)=>rs.filter(fn).length;
+            return {
+              faixa: f, n: rs.length,
+              libA: cnt(r=>r.libAntigo),
+              libR: cnt(r=>r.libRusck),
+              libS: cnt(r=>r.libSarg),
+              regrR: cnt(r=>r.libAntigo && !r.libRusck),
+              regrS: cnt(r=>r.libAntigo && !r.libSarg),
+              gainR: cnt(r=>!r.libAntigo && r.libRusck),
+              gainS: cnt(r=>!r.libAntigo && r.libSarg),
+              carA: rs.reduce((a,r)=>a+r.carregAntigo,0)/rs.length,
+              carR: rs.reduce((a,r)=>a+r.carregRusck,0)/rs.length,
+              carS: rs.reduce((a,r)=>a+r.carregSarg,0)/rs.length,
+            };
+          });
+        }, [data]);
+
+        const exportCsv = () => {
+          const head = ["Faixa","D (kVA)","N clientes","Potencia trafo","Dem. instalada","Classe (auto)",
+            "Impacto ATUAL","Impacto RUSCK","Impacto SARGENT",
+            "Carreg. antes","Carreg. atual","Carreg. Rusck","Carreg. Sargent",
+            "Lib. base","Lib. Rusck","Lib. Sargent",
+            "Transicao Rusck","Transicao Sargent","Margem Rusck (kVA)","Margem Sargent (kVA)"];
+          const transicao = (base,novo)=> base&&!novo?"Passou a exigir obra" : !base&&novo?"Passou a liberar" : base?"Mantem liberado":"Mantem obra";
+          const lines = [head.join(";")];
+          for (const r of data) {
+            lines.push([
+              r.faixa, r.D, r.nClientes, r.potTrafo, r.demInst, r.classe,
+              r.impAntigo, r.impRusck, r.impSarg,
+              r.carregAntes, r.carregAntigo, r.carregRusck, r.carregSarg,
+              r.libAntigo?"Liberado":"Obra", r.libRusck?"Liberado":"Obra", r.libSarg?"Liberado":"Obra",
+              transicao(r.libAntigo,r.libRusck), transicao(r.libAntigo,r.libSarg), r.margemRusck, r.margemSarg
+            ].map(v=>typeof v==="number"?String(v).replace(".",","):v).join(";"));
+          }
+          const blob = new Blob(["﻿"+lines.join("\n")], {type:"text/csv;charset=utf-8;"});
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob); a.download = "comparacao_metodos.csv"; a.click();
+        };
+
+        return (
+          <div className="wrap">
+            <h1>Comparação de Métodos — Demanda de Impacto</h1>
+            <p className="sub">
+              Método atual da planilha × Rusck (CEMIG) × Sargent/Heydt · classe e coincidência
+              inferidas automaticamente · limite de liberação em 150% de carregamento.
+            </p>
+
+            {!state && (
+              <>
+                <div
+                  className={"drop"+(over?" over":"")}
+                  onClick={()=>fileRef.current.click()}
+                  onDragOver={(e)=>{e.preventDefault(); setOver(true);}}
+                  onDragLeave={()=>setOver(false)}
+                  onDrop={onDrop}
+                >
+                  <div className="big">Solte aqui a planilha .xlsx / .xls / .csv</div>
+                  <div className="small">ou clique para escolher o arquivo</div>
+                  <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv"
+                    style={{display:"none"}}
+                    onChange={(e)=>{const f=e.target.files[0]; if(f) handleFile(f);}} />
+                </div>
+                {err && <div className="err">⚠ {err}</div>}
+                <div className="card" style={{marginTop:20}}>
+                  <div className="sec-title">Colunas reconhecidas na planilha</div>
+                  <div className="muted">
+                    <b style={{color:"var(--text-2)"}}>D</b> (carga bruta a diversificar) ·
+                    Número de clientes · Demanda instalada transformador · Potência transformador ·
+                    Resultado simulação · Motivo · Demanda de impacto · Nova demanda instalada ·
+                    % Carregamento · % Novo carregamento. Cabeçalhos com acento, maiúsculas ou
+                    pequenas variações de nome são reconhecidos automaticamente. A coluna <b style={{color:"var(--text-2)"}}>D</b> é
+                    usada como a carga de entrada dos métodos Rusck e Sargent/Heydt.
+                  </div>
+                </div>
+              </>
+            )}
+
+            {state && kpis && (
+              <>
+                <div className="toolbar">
+                  <button className="btn" onClick={()=>{setState(null); setErr(null); setFaixaFiltro("__todas__");}}>↺ Trocar arquivo</button>
+                  <button className="btn primary" onClick={exportCsv}>⭳ Exportar CSV</button>
+                  <span className="muted" style={{marginLeft:4}}>
+                    Aba <b style={{color:"var(--text-2)"}}>{state.sheet}</b> · {data.length} transformadores lidos
+                  </span>
+                  <span style={{flex:1}}></span>
+                  <select className="sel" value={faixaFiltro} onChange={(e)=>setFaixaFiltro(e.target.value)}>
+                    <option value="__todas__">Todas as faixas</option>
+                    {faixasPresentes.map(f=><option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+
+                <Legend />
+
+                {/* Escopo dos indicadores (reflete o filtro de faixa) */}
+                <div className="sec-title" style={{marginBottom:10, display:"flex", alignItems:"center", gap:8}}>
+                  Indicadores
+                  {faixaFiltro==="__todas__"
+                    ? <span className="pill" style={{background:"#14243a", color:"var(--text-3)"}}>Todas as faixas · {kpis.n}</span>
+                    : <span className="pill" style={{background:"#14314f", color:"var(--accent)"}}>Faixa {faixaFiltro} · {kpis.n} caso{kpis.n>1?"s":""}</span>}
+                </div>
+
+                {/* KPIs — foco em MUDANÇA DE DECISÃO (não em impacto total) */}
+                <div className="kpis">
+                  {/* HEADLINE: regressões — era possível liberar e passou a exigir obra */}
+                  <div className="kpi" style={{borderColor:(kpis.regrR||kpis.regrS)?"rgba(208,59,59,0.5)":"var(--border)"}}>
+                    <div className="label">⚠ Passou a exigir obra</div>
+                    <div className="val mono">
+                      <span style={{color:(kpis.regrR?"var(--st-crit)":"var(--text-3)")}}>{kpis.regrR}</span>
+                      <span className="unit"> / </span>
+                      <span style={{color:(kpis.regrS?"var(--st-crit)":"var(--text-3)")}}>{kpis.regrS}</span>
+                    </div>
+                    <div className="foot">era possível liberar → agora obra · <span style={{color:"var(--s-rusck)"}}>Rusck</span> / <span style={{color:"var(--s-sarg)"}}>Sargent</span></div>
+                  </div>
+                  {/* ganhos — exigia obra e passou a liberar */}
+                  <div className="kpi">
+                    <div className="label">✓ Passou a liberar</div>
+                    <div className="val mono">
+                      <span style={{color:(kpis.gainR?"var(--st-good)":"var(--text-3)")}}>+{kpis.gainR}</span>
+                      <span className="unit"> / </span>
+                      <span style={{color:(kpis.gainS?"var(--st-good)":"var(--text-3)")}}>+{kpis.gainS}</span>
+                    </div>
+                    <div className="foot">exigia obra → agora libera · Rusck / Sargent</div>
+                  </div>
+                  {/* liberados sem obra em cada cenário */}
+                  <div className="kpi">
+                    <div className="label">Liberados sem obra</div>
+                    <div className="val mono">
+                      {kpis.liberadosA}<span className="unit" style={{fontSize:15}}> → {kpis.liberadosR} / {kpis.liberadosS}</span>
+                    </div>
+                    <div className="foot">base → Rusck / Sargent (de {kpis.n})</div>
+                  </div>
+                  {/* divergência entre os dois métodos novos */}
+                  <div className="kpi">
+                    <div className="label">Divergência Rusck×Sargent</div>
+                    <div className="val mono" style={{color:kpis.divergentes?"var(--st-warn)":"var(--text-3)"}}>{kpis.divergentes}</div>
+                    <div className="foot">decisão de liberação difere entre os métodos</div>
+                  </div>
+                  {/* casos estourando o limite */}
+                  <div className="kpi">
+                    <div className="label">Estouram 150%</div>
+                    <div className="val mono">
+                      <span style={{color:(kpis.estouramR?"var(--st-crit)":"var(--text-3)")}}>{kpis.estouramR}</span>
+                      <span className="unit"> / </span>
+                      <span style={{color:(kpis.estouramS?"var(--st-crit)":"var(--text-3)")}}>{kpis.estouramS}</span>
+                    </div>
+                    <div className="foot">carreg. novo &gt; 150% · Rusck / Sargent</div>
+                  </div>
+                  {/* casos apertados — folga pequena */}
+                  <div className="kpi">
+                    <div className="label">No limite (120–150%)</div>
+                    <div className="val mono">
+                      <span style={{color:(kpis.apertadosR?"var(--st-warn)":"var(--text-3)")}}>{kpis.apertadosR}</span>
+                      <span className="unit"> / </span>
+                      <span style={{color:(kpis.apertadosS?"var(--st-warn)":"var(--text-3)")}}>{kpis.apertadosS}</span>
+                    </div>
+                    <div className="foot">liberam, mas com pouca folga</div>
+                  </div>
+                  {/* carregamento novo médio */}
+                  <div className="kpi">
+                    <div className="label">Carreg. novo médio</div>
+                    <div className="val mono">
+                      <span style={{color:"var(--s-rusck)"}}>{pct(kpis.carRmed,0)}</span>
+                      <span className="unit"> / </span>
+                      <span style={{color:"var(--s-sarg)"}}>{pct(kpis.carSmed,0)}</span>
+                    </div>
+                    <div className="foot">média Rusck / Sargent · mediana Rusck {pct(kpis.carRmediana,0)}</div>
+                  </div>
+                </div>
+
+                {/* Resumo por faixa de potência */}
+                <div className="card">
+                  <div className="sec-title">Resumo por faixa de potência</div>
+                  <div className="tbl-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Faixa</th><th>Casos</th>
+                          <th>Liberados base</th><th>Lib. Rusck</th><th>Lib. Sargent</th>
+                          <th title="era possível liberar → passou a exigir obra">→ Obra R/S</th>
+                          <th title="exigia obra → passou a liberar">→ Libera R/S</th>
+                          <th>Carreg. atual</th><th>Carreg. Rusck</th><th>Carreg. Sargent</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {porFaixa.map(f=>(
+                          <tr key={f.faixa}>
+                            <td>{f.faixa}</td>
+                            <td className="mono">{f.n}</td>
+                            <td className="mono" style={{color:"var(--s-antigo)"}}>{f.libA}</td>
+                            <td className="mono" style={{color:"var(--s-rusck)"}}>{f.libR}</td>
+                            <td className="mono" style={{color:"var(--s-sarg)"}}>{f.libS}</td>
+                            <td className="mono">
+                              <span style={{color:f.regrR?"var(--st-crit)":"var(--text-4)"}}>{f.regrR}</span>
+                              <span style={{color:"var(--text-5)"}}> / </span>
+                              <span style={{color:f.regrS?"var(--st-crit)":"var(--text-4)"}}>{f.regrS}</span>
+                            </td>
+                            <td className="mono">
+                              <span style={{color:f.gainR?"var(--st-good)":"var(--text-4)"}}>{f.gainR}</span>
+                              <span style={{color:"var(--text-5)"}}> / </span>
+                              <span style={{color:f.gainS?"var(--st-good)":"var(--text-4)"}}>{f.gainS}</span>
+                            </td>
+                            <td className="mono">{pct(f.carA)}</td>
+                            <td className="mono">{pct(f.carR)}</td>
+                            <td className="mono">{pct(f.carS)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="foot-note">
+                    <b style={{color:"var(--st-crit)"}}>→ Obra</b> = casos que a base liberava e o novo método passa a exigir obra (Rusck / Sargent).
+                    <b style={{color:"var(--st-good)"}}> → Libera</b> = o contrário. Base = decisão da planilha (coluna "Resultado simulação")
+                    quando presente, senão carregamento ≤ 150%.
+                  </div>
+                </div>
+
+                {/* Barras de carregamento por faixa */}
+                <div className="sec-title" style={{marginTop:6}}>Carregamento médio por faixa</div>
+                {faixasPresentes
+                  .filter(f=>faixaFiltro==="__todas__"||f===faixaFiltro)
+                  .map(f=><FaixaBars key={f} nome={f} rows={data.filter(r=>r.faixa===f)} />)}
+
+                {/* Detalhe por transformador */}
+                <div className="card">
+                  <div className="sec-title" style={{display:"flex", alignItems:"center", gap:12, flexWrap:"wrap"}}>
+                    <span>Detalhe por transformador {faixaFiltro!=="__todas__" && `— ${faixaFiltro}`}</span>
+                    <label style={{display:"flex", alignItems:"center", gap:6, fontSize:11, fontWeight:400, textTransform:"none", letterSpacing:0, color:"var(--text-3)", cursor:"pointer"}}>
+                      <input type="checkbox" checked={soRegr} onChange={(e)=>setSoRegr(e.target.checked)} />
+                      só casos que passaram a exigir obra
+                    </label>
+                  </div>
+                  <div className="tbl-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>#</th><th>D (kVA)</th><th>Clientes</th><th>Pot.</th><th>Dem. inst.</th><th>Classe (auto)</th>
+                          <th>Imp. atual</th><th>Imp. Rusck</th><th>Imp. Sarg.</th>
+                          <th>Carr. atual</th><th>Carr. Rusck</th><th>Carr. Sarg.</th>
+                          <th>Lib. base</th><th>Lib. Rusck</th><th>Lib. Sarg.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visiveis
+                          .filter(r=> !soRegr || (r.libAntigo && (!r.libRusck || !r.libSarg)))
+                          .map((r,i)=>{
+                          const regr = r.libAntigo && (!r.libRusck || !r.libSarg); // liberava e algum método exige obra
+                          return (
+                          <tr key={i} style={regr?{boxShadow:"inset 3px 0 0 var(--st-crit)"}:null}>
+                            <td className="mono">{i+1}</td>
+                            <td className="mono" style={{color:"var(--text)"}}>{fmt(r.D)}</td>
+                            <td className="mono">{r.nClientes}</td>
+                            <td className="mono">{fmt(r.potTrafo,0)}</td>
+                            <td className="mono">{fmt(r.demInst)}</td>
+                            <td style={{color:"var(--text-3)"}}>{r.classe}</td>
+                            <td className="mono" style={{color:"var(--s-antigo)"}}>{fmt(r.impAntigo)}</td>
+                            <td className="mono" style={{color:"var(--s-rusck)"}}>{fmt(r.impRusck)}</td>
+                            <td className="mono" style={{color:"var(--s-sarg)"}}>{fmt(r.impSarg)}</td>
+                            <td className="mono">{pct(r.carregAntigo)}</td>
+                            <td className="mono">{pct(r.carregRusck)}</td>
+                            <td className="mono">{pct(r.carregSarg)}</td>
+                            <td><LibPill ok={r.libAntigo} /></td>
+                            <td><LibPill ok={r.libRusck} /></td>
+                            <td><LibPill ok={r.libSarg} /></td>
+                          </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="foot-note">
+                    Linhas com <span style={{color:"var(--st-crit)"}}>│</span> à esquerda = liberavam na base e passam a exigir obra
+                    em algum método novo. Impacto Rusck/Sargent = DD = D · FU(classe) · fc(n), com <b>D = coluna "D"</b>,
+                    n = clientes existentes + 1, classe inferida por D. Carregamento = (dem. instalada + impacto) / potência.
+                    <b> Lib. base</b> = decisão da planilha ("Resultado simulação") quando presente, senão carregamento ≤ 150%.
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
