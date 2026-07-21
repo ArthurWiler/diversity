@@ -2384,15 +2384,17 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
         return { sheet: best.name, cols: hdrMap, rows, headerRow: arr[hdrIdx] };
       }
 
-      function faixaPotencia(p) {
-        if (p <= 30)  return "0–30 kVA";
-        if (p <= 45)  return "> 30–45 kVA";
-        if (p <= 75)  return "> 45–75 kVA";
-        if (p <= 112.5) return "> 75–112,5 kVA";
-        if (p <= 150) return "> 112,5–150 kVA";
-        return "> 150 kVA";
+      // Rótulo por potência exata do transformador (ex.: "37,5 kVA")
+      function grupoPotencia(p) {
+        const n = Number(p);
+        const s = n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+        return s + " kVA";
       }
-      const FAIXA_ORDER = ["0–30 kVA","> 30–45 kVA","> 45–75 kVA","> 75–112,5 kVA","> 112,5–150 kVA","> 150 kVA"];
+      // Fase inferida pela potência: monofásico = {5,10,15,25,37,37.5}; senão trifásico
+      const POT_MONO = new Set([5, 10, 15, 25, 37, 37.5]);
+      function fasePotencia(p) {
+        return POT_MONO.has(Number(p)) ? "Monofásico" : "Trifásico";
+      }
 
       function cmpEnrich(row) {
         const D = row.cargaD != null ? row.cargaD : (row.demImpacto ?? 0);
@@ -2421,7 +2423,9 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
           libAntigo,
           libRusck:  carregRusck  <= LIM,
           libSarg:   carregSarg   <= LIM,
-          faixa: faixaPotencia(row.potTrafo),
+          faixa: grupoPotencia(row.potTrafo),
+          fase: fasePotencia(row.potTrafo),
+          potNum: Number(row.potTrafo),
         };
       }
 
@@ -2464,7 +2468,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
         );
         return (
           <div className="card" style={{position:"relative"}}>
-            <div className="faixa-hd">{nome} <span className="cnt">· {rows.length} caso{rows.length>1?"s":""} · carregamento médio</span></div>
+            <div className="faixa-hd">{nome} <span className="cnt">· {rows[0]?.fase} · {rows.length} caso{rows.length>1?"s":""} · carregamento médio</span></div>
             <div style={{position:"relative"}}>
               <div style={{position:"absolute", left:"calc(130px + 12px + "+limX+"% * (100% - 142px)/100%)", top:0, bottom:0, width:0, borderLeft:"1px dashed var(--st-crit)", zIndex:2}}></div>
               <Bar label="Antes (base)"  val={cAntes}  color="var(--text-4)" />
@@ -2483,6 +2487,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
         const [loading, setLoading] = useState(true);
         const [over, setOver] = useState(false);
         const [faixaFiltro, setFaixaFiltro] = useState("__todas__");
+        const [faseFiltro, setFaseFiltro] = useState("__todas__");
         const [soRegr, setSoRegr] = useState(false);
         const fileRef = useRef(null);
 
@@ -2523,9 +2528,19 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
         };
         const onDrop = (e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); };
 
-        const data = state?.enriched || [];
-        const faixasPresentes = FAIXA_ORDER.filter(f => data.some(r=>r.faixa===f));
-        const visiveis = faixaFiltro==="__todas__" ? data : data.filter(r=>r.faixa===faixaFiltro);
+        const dataAll = state?.enriched || [];
+        // Filtro de fase (monofásico/trifásico) escopa todo o relatório
+        const data = faseFiltro==="__todas__" ? dataAll : dataAll.filter(r=>r.fase===faseFiltro);
+        // Potências presentes, ordenadas pelo valor numérico
+        const faixasPresentes = [...new Set(data.map(r=>r.faixa))]
+          .sort((a,b)=>{
+            const pa = data.find(r=>r.faixa===a)?.potNum ?? 0;
+            const pb = data.find(r=>r.faixa===b)?.potNum ?? 0;
+            return pa-pb;
+          });
+        // se a potência selecionada não existe mais na fase atual, ignora o filtro de potência
+        const faixaAtiva = faixaFiltro!=="__todas__" && faixasPresentes.includes(faixaFiltro) ? faixaFiltro : "__todas__";
+        const visiveis = faixaAtiva==="__todas__" ? data : data.filter(r=>r.faixa===faixaAtiva);
 
         const kpis = useMemo(() => {
           const base = visiveis;
@@ -2561,7 +2576,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
             const rs = data.filter(r=>r.faixa===f);
             const cnt = (fn)=>rs.filter(fn).length;
             return {
-              faixa: f, n: rs.length,
+              faixa: f, fase: rs[0]?.fase, n: rs.length,
               libA: cnt(r=>r.libAntigo), libR: cnt(r=>r.libRusck), libS: cnt(r=>r.libSarg),
               regrR: cnt(r=>r.libAntigo && !r.libRusck), regrS: cnt(r=>r.libAntigo && !r.libSarg),
               gainR: cnt(r=>!r.libAntigo && r.libRusck), gainS: cnt(r=>!r.libAntigo && r.libSarg),
@@ -2573,7 +2588,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
         }, [data]);
 
         const exportCsv = () => {
-          const head = ["Faixa","D (kVA)","N clientes","Potencia trafo","Dem. instalada","Classe (auto)",
+          const head = ["Potencia trafo","Fase","D (kVA)","N clientes","Dem. instalada","Classe (auto)",
             "Impacto ATUAL","Impacto RUSCK","Impacto SARGENT",
             "Carreg. antes","Carreg. atual","Carreg. Rusck","Carreg. Sargent",
             "Lib. base","Lib. Rusck","Lib. Sargent",
@@ -2582,7 +2597,7 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
           const lines = [head.join(";")];
           for (const r of data) {
             lines.push([
-              r.faixa, r.D, r.nClientes, r.potTrafo, r.demInst, r.classe,
+              r.potTrafo, r.fase, r.D, r.nClientes, r.demInst, r.classe,
               r.impAntigo, r.impRusck, r.impSarg,
               r.carregAntes, r.carregAntigo, r.carregRusck, r.carregSarg,
               r.libAntigo?"Liberado":"Obra", r.libRusck?"Liberado":"Obra", r.libSarg?"Liberado":"Obra",
@@ -2646,22 +2661,29 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                     onChange={(e)=>{const f=e.target.files[0]; if(f) handleFile(f);}} />
                   <button className="btn primary" onClick={exportCsv}>⭳ Exportar CSV</button>
                   <span className="muted" style={{marginLeft:4}}>
-                    {state.origem} · aba <b style={{color:"var(--text-2)"}}>{state.sheet}</b> · {data.length} transformadores
+                    {state.origem} · aba <b style={{color:"var(--text-2)"}}>{state.sheet}</b> · {dataAll.length} transformadores
                   </span>
                   <span style={{flex:1}}></span>
-                  <select className="sel" value={faixaFiltro} onChange={(e)=>setFaixaFiltro(e.target.value)}>
-                    <option value="__todas__">Todas as faixas</option>
+                  <select className="sel" value={faseFiltro} onChange={(e)=>{setFaseFiltro(e.target.value); setFaixaFiltro("__todas__");}}>
+                    <option value="__todas__">Mono + Trifásico</option>
+                    <option value="Monofásico">Monofásico</option>
+                    <option value="Trifásico">Trifásico</option>
+                  </select>
+                  <select className="sel" value={faixaAtiva} onChange={(e)=>setFaixaFiltro(e.target.value)}>
+                    <option value="__todas__">Todas as potências</option>
                     {faixasPresentes.map(f=><option key={f} value={f}>{f}</option>)}
                   </select>
                 </div>
 
                 <CmpLegend />
 
-                <div className="sec-title" style={{marginBottom:10, display:"flex", alignItems:"center", gap:8}}>
+                <div className="sec-title" style={{marginBottom:10, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
                   Indicadores
-                  {faixaFiltro==="__todas__"
-                    ? <span className="pill" style={{background:"#14243a", color:"var(--text-3)"}}>Todas as faixas · {kpis.n}</span>
-                    : <span className="pill" style={{background:"#14314f", color:"var(--accent)"}}>Faixa {faixaFiltro} · {kpis.n} caso{kpis.n>1?"s":""}</span>}
+                  {faseFiltro!=="__todas__" &&
+                    <span className="pill" style={{background:"#132238", color:"var(--accent)"}}>{faseFiltro}</span>}
+                  {faixaAtiva==="__todas__"
+                    ? <span className="pill" style={{background:"#14243a", color:"var(--text-3)"}}>Todas as potências · {kpis.n}</span>
+                    : <span className="pill" style={{background:"#14314f", color:"var(--accent)"}}>{faixaAtiva} · {kpis.n} caso{kpis.n>1?"s":""}</span>}
                 </div>
 
                 <div className="kpis">
@@ -2725,12 +2747,12 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                 </div>
 
                 <div className="card">
-                  <div className="sec-title">Resumo por faixa de potência</div>
+                  <div className="sec-title">Resumo por potência do transformador</div>
                   <div className="tbl-wrap">
                     <table>
                       <thead>
                         <tr>
-                          <th>Faixa</th><th>Casos</th>
+                          <th>Potência</th><th>Fase</th><th>Casos</th>
                           <th>Liberados base</th><th>Lib. Rusck</th><th>Lib. Sargent</th>
                           <th title="era possível liberar → passou a exigir obra">→ Obra R/S</th>
                           <th title="exigia obra → passou a liberar">→ Libera R/S</th>
@@ -2740,7 +2762,8 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                       <tbody>
                         {porFaixa.map(f=>(
                           <tr key={f.faixa}>
-                            <td>{f.faixa}</td>
+                            <td className="mono">{f.faixa}</td>
+                            <td style={{color:"var(--text-3)"}}>{f.fase}</td>
                             <td className="mono">{f.n}</td>
                             <td className="mono" style={{color:"var(--s-antigo)"}}>{f.libA}</td>
                             <td className="mono" style={{color:"var(--s-rusck)"}}>{f.libR}</td>
@@ -2769,14 +2792,14 @@ DD incremental (kVA): ${resultado.DD.toFixed(3)}`;
                   </div>
                 </div>
 
-                <div className="sec-title" style={{marginTop:6}}>Carregamento médio por faixa</div>
+                <div className="sec-title" style={{marginTop:6}}>Carregamento médio por potência</div>
                 {faixasPresentes
-                  .filter(f=>faixaFiltro==="__todas__"||f===faixaFiltro)
+                  .filter(f=>faixaAtiva==="__todas__"||f===faixaAtiva)
                   .map(f=><CmpFaixaBars key={f} nome={f} rows={data.filter(r=>r.faixa===f)} />)}
 
                 <div className="card">
                   <div className="sec-title" style={{display:"flex", alignItems:"center", gap:12, flexWrap:"wrap"}}>
-                    <span>Detalhe por transformador {faixaFiltro!=="__todas__" && `— ${faixaFiltro}`}</span>
+                    <span>Detalhe por transformador {faixaAtiva!=="__todas__" && `— ${faixaAtiva}`}{faseFiltro!=="__todas__" && ` · ${faseFiltro}`}</span>
                     <label style={{display:"flex", alignItems:"center", gap:6, fontSize:11, fontWeight:400, textTransform:"none", letterSpacing:0, color:"var(--text-3)", cursor:"pointer"}}>
                       <input type="checkbox" checked={soRegr} onChange={(e)=>setSoRegr(e.target.checked)} />
                       só casos que passaram a exigir obra
